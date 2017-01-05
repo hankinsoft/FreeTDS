@@ -71,7 +71,6 @@
 		6521F187144E6B1500CBCC36 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		6521F18A144E6B1500CBCC36 /* FreeTDS-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "FreeTDS-Info.plist"; sourceTree = "<group>"; };
 		6521F18C144E6B1500CBCC36 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		6521F18E144E6B1500CBCC36 /* FreeTDS-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "FreeTDS-Prefix.pch"; sourceTree = "<group>"; };
 		6587B584144EA6940081A62B /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		6587B60E14521A300081A62B /* freetds.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = freetds.conf; path = src/freetds/freetds.conf; sourceTree = SOURCE_ROOT; };
 		7203D12C1E1E8A8F00DC960E /* cryptohelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = cryptohelper.m; sourceTree = "<group>"; };
@@ -216,7 +215,6 @@
 				6587B60E14521A300081A62B /* freetds.conf */,
 				6521F18A144E6B1500CBCC36 /* FreeTDS-Info.plist */,
 				6521F18B144E6B1500CBCC36 /* InfoPlist.strings */,
-				6521F18E144E6B1500CBCC36 /* FreeTDS-Prefix.pch */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -539,7 +537,7 @@
 				FRAMEWORK_VERSION = A;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "FreeTDS/FreeTDS-Prefix.pch";
+				GCC_PREFIX_HEADER = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"_THREAD_SAFE=1",
 					"HAVE_CONFIG_H=1",
@@ -582,7 +580,7 @@
 				FRAMEWORK_VERSION = A;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "FreeTDS/FreeTDS-Prefix.pch";
+				GCC_PREFIX_HEADER = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"_THREAD_SAFE=1",
 					"HAVE_CONFIG_H=1",
