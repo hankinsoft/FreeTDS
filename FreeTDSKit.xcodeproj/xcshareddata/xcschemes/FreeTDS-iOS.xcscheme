@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "7203D1721E1EA27300DC960E"
-               BuildableName = "FreeTDSKitKit.framework"
+               BuildableName = "FreeTDSKit.framework"
                BlueprintName = "FreeTDSKit-ios"
                ReferencedContainer = "container:FreeTDSKit.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7203D1721E1EA27300DC960E"
-            BuildableName = "FreeTDSKitKit.framework"
+            BuildableName = "FreeTDSKit.framework"
             BlueprintName = "FreeTDSKit-ios"
             ReferencedContainer = "container:FreeTDSKit.xcodeproj">
          </BuildableReference>
@@ -64,7 +64,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7203D1721E1EA27300DC960E"
-            BuildableName = "FreeTDSKitKit.framework"
+            BuildableName = "FreeTDSKit.framework"
             BlueprintName = "FreeTDSKit-ios"
             ReferencedContainer = "container:FreeTDSKit.xcodeproj">
          </BuildableReference>
