@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "B89D09FAEF52037FEA04C7B079DA625BA93C66D1",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "B89D09FAEF52037FEA04C7B079DA625BA93C66D1" : 0,
+    "FF20368ACD73D1DB7B39A2515A33912F713941CA" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "18F47881-6E23-4BD7-A06B-936433A92E82",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "B89D09FAEF52037FEA04C7B079DA625BA93C66D1" : "HSSharedOSX\/",
+    "FF20368ACD73D1DB7B39A2515A33912F713941CA" : ".."
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "FreeTDS",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "Connectors\/SQLProMSSQL\/FreeTDS\/FreeTDS.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/hankinsoft.visualstudio.com\/DefaultCollection\/_git\/HSSharedOSX",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "B89D09FAEF52037FEA04C7B079DA625BA93C66D1"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/hankinsoft.visualstudio.com\/DefaultCollection\/_git\/SQLProStudio",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "FF20368ACD73D1DB7B39A2515A33912F713941CA"
+    }
+  ]
+}
