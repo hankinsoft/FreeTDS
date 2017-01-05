@@ -133,7 +133,7 @@
 		6587B584144EA6940081A62B /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		6587B60E14521A300081A62B /* freetds.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = freetds.conf; path = src/freetds/freetds.conf; sourceTree = SOURCE_ROOT; };
 		7203D12C1E1E8A8F00DC960E /* cryptohelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = cryptohelper.m; sourceTree = "<group>"; };
-		7203D1B31E1EA27300DC960E /* FreeTDSKitKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FreeTDSKitKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7203D1B31E1EA27300DC960E /* FreeTDSKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FreeTDSKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7203D1B41E1EA27300DC960E /* FreeTDSKit-macos copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "FreeTDSKit-macos copy-Info.plist"; sourceTree = "<group>"; };
 		7203D1B51E1EA2C400DC960E /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = libs/macOS/libcrypto.a; sourceTree = "<group>"; };
 		7203D1B61E1EA2C400DC960E /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = libs/macOS/libssl.a; sourceTree = "<group>"; };
@@ -245,7 +245,7 @@
 			isa = PBXGroup;
 			children = (
 				6521F17F144E6B1500CBCC36 /* FreeTDSKitKit.framework */,
-				7203D1B31E1EA27300DC960E /* FreeTDSKitKit.framework */,
+				7203D1B31E1EA27300DC960E /* FreeTDSKit.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -473,7 +473,7 @@
 			);
 			name = "FreeTDSKit-ios";
 			productName = FreeTDS;
-			productReference = 7203D1B31E1EA27300DC960E /* FreeTDSKitKit.framework */;
+			productReference = 7203D1B31E1EA27300DC960E /* FreeTDSKit.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
@@ -820,6 +820,7 @@
 				GCC_VERSION = "";
 				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
 					"$(PROJECT_DIR)/src/freetds/include",
 					"$(PROJECT_DIR)/include",
 				);
@@ -831,7 +832,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hankinsoft.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = FreeTDSKitKit;
+				PRODUCT_NAME = FreeTDSKit;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				USER_HEADER_SEARCH_PATHS = "";
@@ -862,6 +863,7 @@
 				GCC_VERSION = "";
 				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
 					"$(PROJECT_DIR)/src/freetds/include",
 					"$(PROJECT_DIR)/include",
 				);
@@ -873,7 +875,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hankinsoft.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = FreeTDSKitKit;
+				PRODUCT_NAME = FreeTDSKit;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				USER_HEADER_SEARCH_PATHS = "";
