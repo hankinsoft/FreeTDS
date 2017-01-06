@@ -6,6 +6,8 @@
 //
 //
 
+#import <UIKit/UIKit.h>
+
 //! Project version number for FreeTDSKit.
 FOUNDATION_EXPORT double FreeTDSKitVersionNumber;
 
