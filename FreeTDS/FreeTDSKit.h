@@ -6,7 +6,14 @@
 //
 //
 
-#import <UIKit/UIKit.h>
+@import Foundation;
+
+#if TARGET_OS_IPHONE
+@import UIKit;
+#endif
+#if !TARGET_OS_IPHONE && TARGET_OS_MAC
+@import AppKit;
+#endif
 
 //! Project version number for FreeTDSKit.
 FOUNDATION_EXPORT double FreeTDSKitVersionNumber;
