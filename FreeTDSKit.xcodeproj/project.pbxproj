@@ -127,6 +127,8 @@
 		7291DFBC1E1EF7C500359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFBE1E1EF7D000359D2C /* FreeTDSKit-macos.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB91E1EF78600359D2C /* FreeTDSKit-macos.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		7291DFD11E1FBA8B00359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -199,6 +201,7 @@
 		7291DFB61E1EF66400359D2C /* FreeTDSKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSKit.h; sourceTree = "<group>"; };
 		7291DFB91E1EF78600359D2C /* FreeTDSKit-macos.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "FreeTDSKit-macos.h"; sourceTree = "<group>"; };
 		7291DFBA1E1EF7A000359D2C /* FreeTDSKit-ios.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "FreeTDSKit-ios.h"; sourceTree = "<group>"; };
+		7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_sysdep_public.h; path = src/freetds/include/tds_sysdep_public.h; sourceTree = "<group>"; };
 		72B8CB001D1C4FEA000DE30C /* libcrypto.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcrypto.35.tbd; path = usr/lib/libcrypto.35.tbd; sourceTree = SDKROOT; };
 		72B8CB021D1C4FF0000DE30C /* libssl.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libssl.35.tbd; path = usr/lib/libssl.35.tbd; sourceTree = SDKROOT; };
 		72BDDBED1B2B00F40073F4C9 /* libssl.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.0.9.8.dylib; path = usr/lib/libssl.0.9.8.dylib; sourceTree = SDKROOT; };
@@ -390,6 +393,7 @@
 			isa = PBXGroup;
 			children = (
 				7203D1CA1E1EC68B00DC960E /* sybdb.h */,
+				7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */,
 			);
 			name = include;
 			sourceTree = "<group>";
@@ -419,6 +423,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7203D1CB1E1EC68B00DC960E /* sybdb.h in Headers */,
+				7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */,
 				7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */,
 				7291DFBE1E1EF7D000359D2C /* FreeTDSKit-macos.h in Headers */,
 				721360481D1858F1006A3F33 /* buffering.h in Headers */,
@@ -438,6 +443,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7203D1CC1E1EC68B00DC960E /* sybdb.h in Headers */,
+				7291DFD11E1FBA8B00359D2C /* tds_sysdep_public.h in Headers */,
 				7291DFBB1E1EF7C100359D2C /* FreeTDSKit-ios.h in Headers */,
 				7291DFBC1E1EF7C500359D2C /* FreeTDSKit.h in Headers */,
 				7203D1A41E1EA27300DC960E /* buffering.h in Headers */,
