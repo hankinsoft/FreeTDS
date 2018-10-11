@@ -81,6 +81,10 @@ static void defaultLogPtr(char * message) {
 }
 
 static void (*sqlProLogPtr)(char * message) = defaultLogPtr;
+static void setSQLProLogPtr((*newSQLProLogPtr)(char * message))
+{
+    sqlProLogPtr = newSQLProLogPtr;
+}
 
 TDSRET
 tds_vstrbuild(char *buffer, int buflen, int *resultlen, const char *text, int textlen, const char *formats, int formatlen, va_list ap)
