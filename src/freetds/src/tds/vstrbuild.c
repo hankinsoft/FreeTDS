@@ -81,9 +81,9 @@ static void defaultLogPtr(char * message) {
 }
 
 static void (*sqlProLogPtr)(char * message) = defaultLogPtr;
-static void setSQLProLogPtr((*newSQLProLogPtr)(char * message))
+void setSQLProLogPtr(void (*functionPtr)(char *))
 {
-    sqlProLogPtr = newSQLProLogPtr;
+    sqlProLogPtr = functionPtr;
 }
 
 TDSRET
