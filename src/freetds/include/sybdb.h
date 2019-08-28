@@ -139,13 +139,19 @@ typedef int (*DB_DBHNDLINTR_FUNC) (void *dbproc);
 */
 #ifdef STATUS
 /* On DU4.0d we get a conflicting STATUS definition from arpa/nameser.h
-   when _REENTRANT is defined.
-*/
+ when _REENTRANT is defined.
+ */
 #undef STATUS
 #endif
 typedef int STATUS;
 #if !defined(_WINDEF_) && !defined(_WINDEF_H) && !defined(DOS32X)
+# if defined (__OBJC__)
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+typedef signed char BOOL;
+#endif
+# else
 typedef int BOOL;
+#endif
 #endif
 #endif
 
