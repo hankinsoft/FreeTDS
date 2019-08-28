@@ -196,6 +196,7 @@
 #endif /* HAVE_STDLIB_H */
 
 #define TDS_DONT_DEFINE_DEFAULT_FUNCTIONS
+#include <freetds/utils.h>
 #include <freetds/tds.h>
 #include <freetds/bytes.h>
 #include <freetds/iconv.h>
@@ -217,7 +218,8 @@ static void tds_swap_numeric(TDS_NUMERIC *num);
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 /**
- * Set type of column initializing all dependency 
+ * Set type of column initializing all dependency.
+ * column_usertype should already be set.
  * @param curcol column to set
  * @param type   type to set
  */
@@ -260,13 +262,22 @@ tds_set_param_type(TDSCONNECTION * conn, TDSCOLUMN * curcol, TDS_SERVER_TYPE typ
 		case SYBBINARY:
 			type = XSYBBINARY;
 			break;
+		case SYBBIT:
+			type = SYBBITN;
+			break;
 			/* avoid warning on other types */
 		default:
 			break;
 		}
 	} else if (IS_TDS50(conn)) {
-		if (type == SYBINT8)
+		switch (type) {
+		case SYBINT8:
 			type = SYB5INT8;
+			break;
+			/* avoid warning on other types */
+		default:
+			break;
+		}
 	}
 	tds_set_column_type(conn, curcol, type);
 
@@ -380,6 +391,8 @@ tds_generic_get_info(TDSSOCKET *tds, TDSCOLUMN *col)
 	case 5:
 	case 4:
 		col->column_size = tds_get_int(tds);
+		if (col->column_size < 0)
+			return TDS_FAIL;
 		break;
 	case 2:
 		/* assure > 0 */
@@ -389,6 +402,8 @@ tds_generic_get_info(TDSSOCKET *tds, TDSCOLUMN *col)
 			col->column_size = 0x3ffffffflu;
 			col->column_varint_size = 8;
 		}
+		if (col->column_size < 0)
+			return TDS_FAIL;
 		break;
 	case 1:
 		col->column_size = tds_get_byte(tds);
@@ -464,10 +479,7 @@ tds_get_char_dynamic(TDSSOCKET *tds, TDSCOLUMN *curcol, void **pp, size_t alloca
 	if (USE_ICONV && curcol->char_conv)
 		res = tds_convert_stream(tds, curcol->char_conv, to_client, r_stream, &w.stream);
 	else
-		res = tds_copy_stream(tds, r_stream, &w.stream);
-	if (TDS_FAILED(res))
-		return res;
-
+		res = tds_copy_stream(r_stream, &w.stream);
 	curcol->column_cur_size = w.size;
 	return res;
 }
@@ -673,8 +685,7 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 			return res;
 		colsize = curcol->column_cur_size;
 #ifdef WORDS_BIGENDIAN
-		if (tds->conn->emul_little_endian)
-			tds_swap_datatype(tds_get_conversion_type(type, colsize), v->data);
+		tds_swap_datatype(tds_get_conversion_type(type, colsize), v->data);
 #endif
 	}
 	v->data_len = colsize;
@@ -766,6 +777,7 @@ tds_generic_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 	if (is_blob_col(curcol)) {
 		TDSDATAINSTREAM r;
 		size_t allocated;
+		TDSRET ret;
 
 		blob = (TDSBLOB *) dest; 	/* cf. column_varint_size case 4, above */
 
@@ -786,7 +798,12 @@ tds_generic_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 		}
 
 		tds_datain_stream_init(&r, tds, colsize);
-		return tds_get_char_dynamic(tds, curcol, (void **) &blob->textvalue, allocated, &r.stream);
+		ret = tds_get_char_dynamic(tds, curcol, (void **) &blob->textvalue, allocated, &r.stream);
+		if (TDS_FAILED(ret) && TDS_UNLIKELY(r.wire_size > 0)) {
+			tds_get_n(tds, NULL, r.wire_size);
+			return ret;
+		}
+		return TDS_SUCCESS;
 	}
 
 	/* non-numeric and non-blob */
@@ -804,7 +821,7 @@ tds_generic_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 			discard_len = colsize - curcol->column_size;
 			colsize = curcol->column_size;
 		}
-		if (tds_get_n(tds, dest, colsize) == NULL)
+		if (!tds_get_n(tds, dest, colsize))
 			return TDS_FAIL;
 		if (discard_len > 0)
 			tds_get_n(tds, NULL, discard_len);
@@ -835,10 +852,8 @@ tds_generic_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 	}
 
 #ifdef WORDS_BIGENDIAN
-	if (tds->conn->emul_little_endian) {
-		tdsdump_log(TDS_DBG_INFO1, "swapping coltype %d\n", tds_get_conversion_type(curcol->column_type, colsize));
-		tds_swap_datatype(tds_get_conversion_type(curcol->column_type, colsize), dest);
-	}
+	tdsdump_log(TDS_DBG_INFO1, "swapping coltype %d\n", tds_get_conversion_type(curcol->column_type, colsize));
+	tds_swap_datatype(tds_get_conversion_type(curcol->column_type, colsize), dest);
 #endif
 	return TDS_SUCCESS;
 }
@@ -877,8 +892,7 @@ tds_generic_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	}
 
 	/* TDS5 wants a table name for LOBs */
-	if (IS_TDS50(tds->conn)
-	    && (col->on_server.column_type == SYBIMAGE || col->on_server.column_type == SYBTEXT))
+	if (IS_TDS50(tds->conn) && is_blob_type(col->on_server.column_type))
 		tds_put_smallint(tds, 0);
 
 	/* TDS7.1 output collate information */
@@ -1012,7 +1026,10 @@ tds_generic_put(TDSSOCKET * tds, TDSCOLUMN * curcol, int bcp7)
 
 		switch (curcol->column_varint_size) {
 		case 8:
-			tds_put_int8(tds, colsize);
+			/* this difference for BCP operation is due to
+			 * a bug in different server version that does
+			 * not accept a length here */
+			tds_put_int8(tds, bcp7 ? -2 : colsize);
 			tds_put_int(tds, colsize);
 			break;
 		case 4:	/* It's a BLOB... */
@@ -1054,7 +1071,7 @@ tds_generic_put(TDSSOCKET * tds, TDSCOLUMN * curcol, int bcp7)
 #ifdef WORDS_BIGENDIAN
 			unsigned char buf[64];
 
-			if (tds->conn->emul_little_endian && !converted && colsize < 64) {
+			if (!converted && colsize < 64) {
 				tdsdump_log(TDS_DBG_INFO1, "swapping coltype %d\n",
 					    tds_get_conversion_type(curcol->column_type, colsize));
 				memcpy(buf, s, colsize);
@@ -1117,7 +1134,7 @@ tds_generic_put(TDSSOCKET * tds, TDSCOLUMN * curcol, int bcp7)
 #ifdef WORDS_BIGENDIAN
 			unsigned char buf[64];
 
-			if (tds->conn->emul_little_endian && !converted && colsize < 64) {
+			if (!converted && colsize < 64) {
 				tdsdump_log(TDS_DBG_INFO1, "swapping coltype %d\n",
 					    tds_get_conversion_type(curcol->column_type, colsize));
 				memcpy(buf, s, colsize);
@@ -1408,6 +1425,7 @@ tds_clrudt_get_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	tds_get_string(tds, tds_get_usmallint(tds), NULL, 0);
 
 	col->column_size = 0x7ffffffflu;
+	col->column_varint_size = 8;
 
 	return TDS_SUCCESS;
 }
@@ -1415,8 +1433,15 @@ tds_clrudt_get_info(TDSSOCKET * tds, TDSCOLUMN * col)
 TDS_INT
 tds_clrudt_row_len(TDSCOLUMN *col)
 {
+	col->column_varint_size = 8;
 	/* TODO save other fields */
 	return sizeof(TDSBLOB);
+}
+
+unsigned
+tds_clrudt_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
+{
+	return 3;
 }
 
 TDSRET
@@ -1493,6 +1518,42 @@ tds_sybbigtime_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
 	return TDS_SUCCESS;
 }
 
+TDSRET
+tds_invalid_get_info(TDSSOCKET * tds, TDSCOLUMN * col)
+{
+	return TDS_FAIL;
+}
+
+TDS_INT
+tds_invalid_row_len(TDSCOLUMN *col)
+{
+	return 0;
+}
+
+TDSRET
+tds_invalid_get(TDSSOCKET * tds, TDSCOLUMN * col)
+{
+	return TDS_FAIL;
+}
+
+TDSRET
+tds_invalid_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
+{
+	return TDS_FAIL;
+}
+
+unsigned
+tds_invalid_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
+{
+	return 0;
+}
+
+TDSRET
+tds_invalid_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
+{
+	return TDS_FAIL;
+}
+
 #if ENABLE_EXTRA_CHECKS
 int
 tds_generic_check(const TDSCOLUMN *col)
@@ -1565,6 +1626,12 @@ tds_numeric_check(const TDSCOLUMN *col)
 
 	return 1;
 }
+
+int
+tds_invalid_check(const TDSCOLUMN *col)
+{
+	return 1;
+}
 #endif
 
 
@@ -1578,6 +1645,7 @@ TDS_DECLARE_FUNCS(variant);
 TDS_DECLARE_FUNCS(msdatetime);
 TDS_DECLARE_FUNCS(clrudt);
 TDS_DECLARE_FUNCS(sybbigtime);
+TDS_DECLARE_FUNCS(invalid);
 #include <freetds/popvis.h>
 
 static const TDSCOLUMNFUNCS *

@@ -47,7 +47,7 @@
 #include <freetds/iconv.h>
 #include <freetds/bytes.h>
 #include <freetds/stream.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/checks.h>
 
 static size_t read_and_convert(TDSSOCKET * tds, TDSICONV * char_conv,
@@ -115,11 +115,7 @@ tds_get_usmallint(TDSSOCKET * tds)
 	TDS_USMALLINT bytes[1];
 
 	tds_get_n(tds, &bytes, 2);
-#if WORDS_BIGENDIAN
-	if (tds->conn->emul_little_endian)
-		return (TDS_USMALLINT) TDS_GET_A2LE(&bytes);
-#endif
-	return (TDS_USMALLINT) TDS_GET_A2(&bytes);
+	return (TDS_USMALLINT) TDS_GET_A2LE(&bytes);
 }
 
 
@@ -133,11 +129,7 @@ tds_get_uint(TDSSOCKET * tds)
 	TDS_UINT bytes;
 
 	tds_get_n(tds, &bytes, 4);
-#if WORDS_BIGENDIAN
-	if (tds->conn->emul_little_endian)
-		return TDS_GET_A4LE(&bytes);
-#endif
-	return TDS_GET_A4(&bytes);
+	return TDS_GET_A4LE(&bytes);
 }
 
 /**
@@ -152,18 +144,8 @@ tds_get_uint8(TDSSOCKET * tds)
 	TDS_UINT bytes[2];
 
 	tds_get_n(tds, bytes, 8);
-#if WORDS_BIGENDIAN
-	if (tds->conn->emul_little_endian) {
-		l = TDS_GET_A4LE(bytes);
-		h = TDS_GET_A4LE(bytes+1);
-	} else {
-		h = TDS_GET_A4(bytes);
-		l = TDS_GET_A4(bytes+1);
-	}
-#else
-	l = TDS_GET_A4(bytes);
-	h = TDS_GET_A4(bytes+1);
-#endif
+	l = TDS_GET_A4LE(bytes);
+	h = TDS_GET_A4LE(bytes+1);
 	return (((TDS_UINT8) h) << 32) | l;
 }
 
@@ -244,7 +226,7 @@ tds_get_char_data(TDSSOCKET * tds, char *row_buffer, size_t wire_size, TDSCOLUMN
  * bounds checking for us since they know how many bytes they want here.
  * dest of NULL means we just want to eat the bytes.   (tetherow@nol.org)
  */
-void *
+bool
 tds_get_n(TDSSOCKET * tds, void *dest, size_t need)
 {
 	for (;;) {
@@ -259,7 +241,7 @@ tds_get_n(TDSSOCKET * tds, void *dest, size_t need)
 		}
 		need -= have;
 		if (TDS_UNLIKELY(tds_read_packet(tds) < 0))
-			return NULL;
+			return false;
 	}
 	if (need > 0) {
 		/* get the remainder if there is any */
@@ -268,7 +250,7 @@ tds_get_n(TDSSOCKET * tds, void *dest, size_t need)
 		}
 		tds->in_pos += need;
 	}
-	return dest;
+	return true;
 }
 
 /**

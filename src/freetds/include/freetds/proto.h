@@ -133,6 +133,7 @@ typedef TDS_UINT8 TDS_BIGDATETIME;
 #define TDS_ENV_BEGINTRANS	8
 #define TDS_ENV_COMMITTRANS	9
 #define TDS_ENV_ROLLBACKTRANS	10
+#define TDS_ENV_ROUTING 	20
 
 /* Microsoft internal stored procedure id's */
 #define TDS_SP_CURSOR           1
@@ -477,4 +478,12 @@ enum {
 	TDS5_SEC_LOG_SECSESS = 16,
 	TDS5_SEC_LOG_ENCRYPT2 = 32,
 	TDS5_SEC_LOG_NONCE = 128
+};
+
+/* MS encryption byte (pre login) */
+enum {
+	TDS7_ENCRYPT_OFF,
+	TDS7_ENCRYPT_ON,
+	TDS7_ENCRYPT_NOT_SUP,
+	TDS7_ENCRYPT_REQ,
 };

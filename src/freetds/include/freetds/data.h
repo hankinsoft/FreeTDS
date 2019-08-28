@@ -37,6 +37,14 @@
 	TDS_EXTRA_CHECK(tds_ ## name ## _check) \
 }
 
+tds_func_get_info tds_invalid_get_info;
+tds_func_row_len  tds_invalid_row_len;
+tds_func_get_data tds_invalid_get;
+tds_func_put_info_len tds_invalid_put_info_len;
+tds_func_put_info tds_invalid_put_info;
+tds_func_put_data tds_invalid_put;
+tds_func_check    tds_invalid_check;
+
 tds_func_get_info tds_generic_get_info;
 tds_func_row_len  tds_generic_row_len;
 tds_func_get_data tds_generic_get;
@@ -72,7 +80,7 @@ tds_func_check    tds_msdatetime_check;
 tds_func_get_info tds_clrudt_get_info;
 tds_func_row_len  tds_clrudt_row_len;
 #define tds_clrudt_get tds_generic_get
-#define tds_clrudt_put_info_len tds_generic_put_info_len
+tds_func_put_info_len tds_clrudt_put_info_len;
 tds_func_put_info tds_clrudt_put_info;
 #define tds_clrudt_put tds_generic_put
 tds_func_check    tds_clrudt_check;
@@ -93,6 +101,7 @@ tds_func_check    tds_sybbigtime_check;
 #  define TDS_DEFINE_DEFAULT_FUNCS(name) \
 	const TDSCOLUMNFUNCS tds_ ## name ## _funcs = TDS_COMMON_FUNCS(name)
 
+TDS_DEFINE_DEFAULT_FUNCS(invalid);
 TDS_DEFINE_DEFAULT_FUNCS(generic);
 TDS_DEFINE_DEFAULT_FUNCS(numeric);
 TDS_DEFINE_DEFAULT_FUNCS(variant);

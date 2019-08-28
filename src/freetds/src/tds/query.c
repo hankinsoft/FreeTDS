@@ -37,13 +37,13 @@
 #include <freetds/enum_cap.h>
 #include <freetds/iconv.h>
 #include <freetds/convert.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/checks.h>
 #include "replacements.h"
 
 #include <assert.h>
 
-static void tds_put_params(TDSSOCKET * tds, TDSPARAMINFO * info, int flags);
+static TDSRET tds_put_params(TDSSOCKET * tds, TDSPARAMINFO * info, int flags) TDS_WUR;
 static void tds7_put_query_params(TDSSOCKET * tds, const char *query, size_t query_len);
 static void tds7_put_params_definition(TDSSOCKET * tds, const char *param_definition, size_t param_length);
 static TDSRET tds_put_data_info(TDSSOCKET * tds, TDSCOLUMN * curcol, int flags);
@@ -79,7 +79,7 @@ static int tds_count_placeholders_ucs2le(const char *query, const char *query_en
 
 /**
  * Accept an ASCII string, convert it to UCS2-LE
- * The input is null-terminated, but the output excludes the null.
+ * The input is NUL-terminated, but the output does not contains the NUL.
  * \param buffer buffer where to store output
  * \param buf string to write
  * \return bytes written
@@ -115,7 +115,7 @@ tds_ascii_to_ucs2(char *buffer, const char *buf)
  * \param tds        state information for the socket and the TDS protocol
  * \param char_conv  information about the encodings involved
  * \param s          input string
- * \param len        input string length (in bytes), -1 for null terminated
+ * \param len        input string length (in bytes), -1 for NUL-terminated
  * \param out_len    returned output length (in bytes)
  * \return string allocated (or input pointer if no conversion required) or NULL if error
  */
@@ -168,14 +168,16 @@ tds_convert_string_free(const char *original, const char *converted)
 /**
  * Flush query packet.
  * Used at the end of packet write to really send packet to server.
+ * This also changes the state to TDS_PENDING.
  * \tds
  */
 static TDSRET
 tds_query_flush_packet(TDSSOCKET *tds)
 {
+	TDSRET ret = tds_flush_packet(tds);
 	/* TODO depend on result ?? */
 	tds_set_state(tds, TDS_PENDING);
-	return tds_flush_packet(tds);
+	return ret;
 }
 
 /**
@@ -193,7 +195,7 @@ tds_set_cur_dyn(TDSSOCKET *tds, TDSDYNAMIC *dyn)
 }
 
 /**
- * tds_submit_query() sends a language string to the database server for
+ * Sends a language string to the database server for
  * processing.  TDS 4.2 is a plain text message with a packet type of 0x01,
  * TDS 7.0 is a unicode string with packet type 0x01, and TDS 5.0 uses a 
  * TDS_LANGUAGE_TOKEN to encapsulate the query and a packet type of 0x0f.
@@ -210,7 +212,7 @@ tds_submit_query(TDSSOCKET * tds, const char *query)
 /**
  * Substitute ?-style placeholders with named (\@param) ones.
  * Sybase does not support ?-style placeholders so convert them.
- * Also the function replace parameters names.
+ * Also the function replace parameter names.
  * \param query  query string
  * \param[in,out] query_len  pointer to query length.
  *                On input length of input query, on output length
@@ -348,7 +350,7 @@ tds_start_query(TDSSOCKET *tds, unsigned char packet_type)
 }
 
 /**
- * tds_submit_query_params() sends a language string to the database server for
+ * Sends a language string to the database server for
  * processing.  TDS 4.2 is a plain text message with a packet type of 0x01,
  * TDS 7.0 is a unicode string with packet type 0x01, and TDS 5.0 uses a
  * TDS_LANGUAGE_TOKEN to encapsulate the query and a packet type of 0x0f.
@@ -394,7 +396,8 @@ tds_submit_query_params(TDSSOCKET * tds, const char *query, TDSPARAMINFO * param
 		tds_put_n(tds, query, query_len);
 		if (params) {
 			/* add on parameters */
-			tds_put_params(tds, params, tds_dstr_isempty(&params->columns[0]->column_name) ? 0 : TDS_PUT_DATA_USE_NAME);
+			int flags = tds_dstr_isempty(&params->columns[0]->column_name) ? 0 : TDS_PUT_DATA_USE_NAME;
+			TDS_PROPAGATE(tds_put_params(tds, params, flags));
 		}
 		free(new_query);
 	} else if (!IS_TDS7_PLUS(tds->conn) || !params || !params->num_cols) {
@@ -466,10 +469,8 @@ tds_submit_query_params(TDSSOCKET * tds, const char *query, TDSPARAMINFO * param
  
 		for (i = 0; i < num_params; i++) {
 			param = params->columns[i];
-			/* TODO check error */
-			tds_put_data_info(tds, param, 0);
-			if (tds_put_data(tds, param) != TDS_SUCCESS)
-				return TDS_FAIL;
+			TDS_PROPAGATE(tds_put_data_info(tds, param, 0));
+			TDS_PROPAGATE(tds_put_data(tds, param));
 		}
 		tds->current_op = TDS_OP_EXECUTESQL;
 	}
@@ -583,7 +584,7 @@ tds_next_placeholder(const char *start)
 }
 
 /**
- * Count the number of placeholders in query
+ * Count the number of placeholders ('?') in a query
  * \param query  query string
  */
 int
@@ -600,7 +601,7 @@ tds_count_placeholders(const char *query)
 
 /**
  * Skip a comment in a query
- * \param s    start of the string (or part of it). Encoded in ucs2
+ * \param s    start of the string (or part of it). Encoded in ucs2le
  * \param end  end of string
  * \returns pointer to end of comment
  */
@@ -629,7 +630,7 @@ tds_skip_comment_ucs2le(const char *s, const char *end)
 /**
  * Return pointer to end of a quoted string.
  * At the beginning pointer should point to delimiter.
- * \param s    start of string to skip encoded in ucs2
+ * \param s    start of string to skip encoded in ucs2le
  * \param end  pointer to end of string
  */
 static const char *
@@ -652,7 +653,7 @@ tds_skip_quoted_ucs2le(const char *s, const char *end)
 
 /**
  * Found the next placeholder (? or \@param) in a string.
- * String must be encoded in ucs2.
+ * String must be encoded in ucs2le.
  * \param start  start of the string (or part of it)
  * \param end    end of string
  * \param named  true if named parameters should be returned
@@ -701,8 +702,8 @@ tds_next_placeholder_ucs2le(const char *start, const char *end, int named)
 }
 
 /**
- * Count number of placeholders (?) in a query
- * \param query      query encoded in ucs2
+ * Count the number of placeholders ('?') in a query
+ * \param query      query encoded in ucs2le
  * \param query_end  end of query
  * \return number of placeholders found
  */
@@ -719,7 +720,14 @@ tds_count_placeholders_ucs2le(const char *query, const char *query_end)
 }
 
 /**
- * Return declaration for column (like "varchar(20)")
+ * Return declaration for column (like "varchar(20)").
+ *
+ * This depends on:
+ * - on_server.column_type
+ * - varint_size (for varchar(max) distinction)
+ * - column_size
+ * - precision/scale (numeric)
+ *
  * \tds
  * \param curcol column
  * \param out    buffer to hold declaration
@@ -750,6 +758,7 @@ tds_get_column_declaration(TDSSOCKET * tds, TDSCOLUMN * curcol, char *out)
 		else
 			fmt = "VARCHAR(%u)";
 		break;
+	case SYBUINT1:
 	case SYBINT1:
 		fmt = "TINYINT";
 		break;
@@ -891,7 +900,7 @@ tds_get_column_declaration(TDSSOCKET * tds, TDSCOLUMN * curcol, char *out)
 
 	if (fmt) {
 		/* fill out */
-		sprintf(out, fmt, size > 0 ? (size > max_len ? max_len : size) : 1u);
+		sprintf(out, fmt, size > 0 ? MIN(size, max_len) : 1u);
 		return TDS_SUCCESS;
 	}
 
@@ -900,14 +909,14 @@ tds_get_column_declaration(TDSSOCKET * tds, TDSCOLUMN * curcol, char *out)
 }
 
 /**
- * Return string with parameters definition, useful for TDS7+
+ * Return string with parameters definition, useful for TDS7+.
  * Looks like "@P1 INT, @P2 VARCHAR(100)"
  * \param tds     state information for the socket and the TDS protocol
- * \param converted_query     query to send to server in ucs2 encoding
+ * \param converted_query     query to send to server in ucs2le encoding
  * \param converted_query_len query length in bytes
  * \param params  parameters to build declaration
  * \param out_len length output buffer in bytes
- * \return allocated and filled string or NULL on failure (coded in ucs2le charset )
+ * \return allocated and filled string or NULL on failure (encoded in ucs2le)
  */
 /* TODO find a better name for this function */
 static char *
@@ -965,13 +974,14 @@ tds7_build_param_def_from_query(TDSSOCKET * tds, const char* converted_query, si
 }
 
 /**
- * Return string with parameters definition, useful for TDS7+
+ * Return string with parameters definition, useful for TDS7+.
+ * Looks like "@P1 INT, @P2 VARCHAR(100)"
  * \param tds       state information for the socket and the TDS protocol
- * \param query     query to send to server encoded as ucs2
+ * \param query     query to send to server encoded in ucs2le
  * \param query_len query length in bytes
  * \param params    parameters to build declaration
  * \param out_len   length output buffer in bytes
- * \return allocated and filled string or NULL on failure (coded in ucs2le charset )
+ * \return allocated and filled string or NULL on failure (encoded in ucs2le)
  */
 /* TODO find a better name for this function */
 static char *
@@ -1085,7 +1095,7 @@ tds7_build_param_def_from_params(TDSSOCKET * tds, const char* query, size_t quer
 /**
  * Output params types and query (required by sp_prepare/sp_executesql/sp_prepexec)
  * \param tds       state information for the socket and the TDS protocol
- * \param query     query (in ucs2le codings)
+ * \param query     query (encoded in ucs2le)
  * \param query_len query length in bytes
  */
 static void
@@ -1134,9 +1144,10 @@ tds7_put_query_params(TDSSOCKET * tds, const char *query, size_t query_len)
 }
 
 /**
- * Send parameter definition to server
+ * Send parameters definition to server
+ * \sa tds7_build_param_def_from_query, tds7_build_param_def_from_params
  * \tds
- * \param param_definition  parameter definition string. Encoded in ucs2
+ * \param param_definition  parameter definition string. Encoded in ucs2le
  * \param param_length      parameter definition string length in bytes
  */
 static void
@@ -1158,8 +1169,12 @@ tds7_put_params_definition(TDSSOCKET * tds, const char *param_definition, size_t
 }
 
 /**
- * tds_submit_prepare() creates a temporary stored procedure in the server.
- * Under TDS 4.2 dynamic statements are emulated building sql command
+ * Creates a temporary stored procedure in the server.
+ *
+ * Under TDS 4.2 dynamic statements are emulated building sql command.
+ * TDS 5 does not uses parameters type.
+ * TDS 7+ uses parameter types to prepare the query. You should
+ * prepare again the query if parameters changes.
  * \param tds     state information for the socket and the TDS protocol
  * \param query   language query with given placeholders (?)
  * \param id      string to identify the dynamic query. Pass NULL for automatic generation.
@@ -1249,7 +1264,7 @@ tds_submit_prepare(TDSSOCKET * tds, const char *query, const char *id, TDSDYNAMI
 		tds_convert_string_free(query, converted_query);
 		free(param_definition);
 
-		/* 1 param ?? why ? flags ?? */
+		/* options, 1 == RETURN_METADATA */
 		tds_put_byte(tds, 0);
 		tds_put_byte(tds, 0);
 		tds_put_byte(tds, SYBINTN);
@@ -1365,14 +1380,9 @@ tds_submit_execdirect(TDSSOCKET * tds, const char *query, TDSPARAMINFO * params,
 		free(param_definition);
 
 		for (i = 0; i < params->num_cols; i++) {
-			TDSRET ret;
-
 			param = params->columns[i];
-			/* TODO check error */
-			tds_put_data_info(tds, param, 0);
-			ret = tds_put_data(tds, param);
-			if (TDS_FAILED(ret))
-				return ret;
+			TDS_PROPAGATE(tds_put_data_info(tds, param, 0));
+			TDS_PROPAGATE(tds_put_data(tds, param));
 		}
 
 		tds->current_op = TDS_OP_EXECUTESQL;
@@ -1444,18 +1454,18 @@ tds_submit_execdirect(TDSSOCKET * tds, const char *query, TDSPARAMINFO * params,
 	tds_put_n(tds, query, (int)query_len);
 
 	if (params)
-		tds_put_params(tds, params, 0);
+		TDS_PROPAGATE(tds_put_params(tds, params, 0));
 
 	return tds_flush_packet(tds);
 }
 
 /**
- * tds71_submit_prepexec() creates a temporary stored procedure in the server.
+ * Creates a temporary stored procedure in the server and execute it.
  * \param tds     state information for the socket and the TDS protocol
- * \param query   language query with given placeholders (?)
+ * \param query   language query with given placeholders ('?')
  * \param id      string to identify the dynamic query. Pass NULL for automatic generation.
- * \param dyn_out will receive allocated TDSDYNAMIC*. Any older allocated dynamic won't be freed, Can be NULL.
- * \param params  parameters to use. It can be NULL even if parameters are present. Used only for TDS7+
+ * \param dyn_out will receive allocated TDSDYNAMIC*. Any older allocated dynamic won't be freed. Can be NULL.
+ * \param params  parameters to use. It can be NULL even if parameters are present.
  * \return TDS_FAIL or TDS_SUCCESS
  */
 TDSRET
@@ -1527,11 +1537,8 @@ tds71_submit_prepexec(TDSSOCKET * tds, const char *query, const char *id, TDSDYN
 
 		for (i = 0; i < params->num_cols; i++) {
 			TDSCOLUMN *param = params->columns[i];
-			/* TODO check error */
-			tds_put_data_info(tds, param, 0);
-			rc = tds_put_data(tds, param);
-			if (TDS_FAILED(rc))
-				return rc;
+			TDS_PROPAGATE(tds_put_data_info(tds, param, 0));
+			TDS_PROPAGATE(tds_put_data(tds, param));
 		}
 	}
 
@@ -1578,9 +1585,9 @@ tds_fix_column_size(TDSSOCKET * tds, TDSCOLUMN * curcol)
 		break;
 	case 4:
 		if (curcol->on_server.column_type == SYBNTEXT)
-			size = MAX(MIN(size, 0x7ffffffeu), 2u);
+			size = 0x7ffffffeu;
 		else
-			size = MAX(MIN(size, 0x7fffffffu), 1u);
+			size = 0x7fffffffu;
 		break;
 	default:
 		break;
@@ -1689,7 +1696,7 @@ tds_put_data_info_length(TDSSOCKET * tds, TDSCOLUMN * curcol, int flags)
  * \tds
  * \param dyn  dynamic query to execute
  */
-static void
+static TDSRET
 tds7_send_execute(TDSSOCKET * tds, TDSDYNAMIC * dyn)
 {
 	TDSCOLUMN *param;
@@ -1713,18 +1720,16 @@ tds7_send_execute(TDSSOCKET * tds, TDSDYNAMIC * dyn)
 	if (info)
 		for (i = 0; i < info->num_cols; i++) {
 			param = info->columns[i];
-			/* TODO check error */
-			tds_put_data_info(tds, param, 0);
-			/* FIXME handle error */
-			tds_put_data(tds, param);
+			TDS_PROPAGATE(tds_put_data_info(tds, param, 0));
+			TDS_PROPAGATE(tds_put_data(tds, param));
 		}
 
 	tds->current_op = TDS_OP_EXECUTE;
+	return TDS_SUCCESS;
 }
 
 /**
- * tds_submit_execute() sends a previously prepared dynamic statement to the 
- * server.
+ * Sends a previously prepared dynamic statement to the server.
  * \param tds state information for the socket and the TDS protocol
  * \param dyn dynamic proc to execute. Must build from same tds.
  */
@@ -1760,9 +1765,7 @@ tds_submit_execute(TDSSOCKET * tds, TDSDYNAMIC * dyn)
 	}
 
 	if (dyn->emulated) {
-		TDSRET rc = tds_send_emulated_execute(tds, dyn->query, dyn->params);
-		if (TDS_FAILED(rc))
-			return rc;
+		TDS_PROPAGATE(tds_send_emulated_execute(tds, dyn->query, dyn->params));
 		return tds_query_flush_packet(tds);
 	}
 
@@ -1783,7 +1786,7 @@ tds_submit_execute(TDSSOCKET * tds, TDSDYNAMIC * dyn)
 	tds_put_smallint(tds, 0);
 
 	if (dyn->params)
-		tds_put_params(tds, dyn->params, 0);
+		TDS_PROPAGATE(tds_put_params(tds, dyn->params, 0));
 
 	/* send it */
 	return tds_query_flush_packet(tds);
@@ -1795,43 +1798,37 @@ tds_submit_execute(TDSSOCKET * tds, TDSDYNAMIC * dyn)
  * \param info   parameters to send
  * \param flags  0 or TDS_PUT_DATA_USE_NAME
  */
-static void
+static TDSRET
 tds_put_params(TDSSOCKET * tds, TDSPARAMINFO * info, int flags)
 {
 	int i, len;
-	bool wide;
 
 	CHECK_TDS_EXTRA(tds);
 	CHECK_PARAMINFO_EXTRA(info);
 
-	wide = !!tds_capability_has_req(tds->conn, TDS_REQ_WIDETABLE);
-
-	/* column descriptions */
-	tds_put_byte(tds, wide ? TDS5_PARAMFMT2_TOKEN : TDS5_PARAMFMT_TOKEN);
 	/* size */
 	len = 2;
 	for (i = 0; i < info->num_cols; i++)
 		len += tds_put_data_info_length(tds, info->columns[i], flags);
-	if (wide) {
+	if (len > 0xffffu && tds_capability_has_req(tds->conn, TDS_REQ_WIDETABLE)) {
+		tds_put_byte(tds, TDS5_PARAMFMT2_TOKEN);
 		tds_put_int(tds, len + 3 * info->num_cols);
 		flags |= TDS_PUT_DATA_LONG_STATUS;
 	} else {
+		tds_put_byte(tds, TDS5_PARAMFMT_TOKEN);
 		tds_put_smallint(tds, len);
 	}
 	/* number of parameters */
 	tds_put_smallint(tds, info->num_cols);
 	/* column detail for each parameter */
-	for (i = 0; i < info->num_cols; i++) {
-		/* FIXME add error handling */
-		tds_put_data_info(tds, info->columns[i], flags);
-	}
+	for (i = 0; i < info->num_cols; i++)
+		TDS_PROPAGATE(tds_put_data_info(tds, info->columns[i], flags));
 
 	/* row data */
 	tds_put_byte(tds, TDS5_PARAMS_TOKEN);
-	for (i = 0; i < info->num_cols; i++) {
-		/* FIXME handle error */
-		tds_put_data(tds, info->columns[i]);
-	}
+	for (i = 0; i < info->num_cols; i++)
+		TDS_PROPAGATE(tds_put_data(tds, info->columns[i]));
+	return TDS_SUCCESS;
 }
 
 /**
@@ -1874,7 +1871,7 @@ tds_deferred_unprepare(TDSCONNECTION * conn, TDSDYNAMIC * dyn)
 		return TDS_SUCCESS;
 	}
 
-	dyn->defer_close = 1;
+	dyn->defer_close = true;
 	conn->pending_close = 1;
 
 	return TDS_SUCCESS;
@@ -2015,7 +2012,7 @@ tds_send_emulated_rpc(TDSSOCKET * tds, const char *rpc_name, TDSPARAMINFO * para
 }
 
 /**
- * tds_submit_rpc() call a RPC from server. Output parameters will be stored in tds->param_info
+ * Calls a RPC from server. Output parameters will be stored in tds->param_info.
  * \param tds      state information for the socket and the TDS protocol
  * \param rpc_name name of RPC
  * \param params   parameters informations. NULL for no parameters
@@ -2070,10 +2067,8 @@ tds_submit_rpc(TDSSOCKET * tds, const char *rpc_name, TDSPARAMINFO * params, TDS
 
 		for (i = 0; i < num_params; i++) {
 			param = params->columns[i];
-			/* TODO check error */
-			tds_put_data_info(tds, param, TDS_PUT_DATA_USE_NAME);
-			/* FIXME handle error */
-			tds_put_data(tds, param);
+			TDS_PROPAGATE(tds_put_data_info(tds, param, TDS_PUT_DATA_USE_NAME));
+			TDS_PROPAGATE(tds_put_data(tds, param));
 		}
 
 		return tds_query_flush_packet(tds);
@@ -2092,7 +2087,7 @@ tds_submit_rpc(TDSSOCKET * tds, const char *rpc_name, TDSPARAMINFO * params, TDS
 		tds_put_smallint(tds, num_params ? 2 : 0);
 
 		if (num_params)
-			tds_put_params(tds, params, TDS_PUT_DATA_USE_NAME);
+			TDS_PROPAGATE(tds_put_params(tds, params, TDS_PUT_DATA_USE_NAME));
 
 		/* send it */
 		return tds_query_flush_packet(tds);
@@ -2220,7 +2215,7 @@ tds_send_cancel(TDSSOCKET * tds)
  * \tds
  * \param buffer   output buffer. If NULL function will just return
  *        required bytes
- * \param quoting  quote character
+ * \param quoting  quote character (should be one of '\'', '"', ']')
  * \param id       string to quote
  * \param len      length of string to quote
  * \returns size of output string
@@ -2307,8 +2302,8 @@ tds_quote_id(TDSSOCKET * tds, char *buffer, const char *id, int idlen)
  * \param tds    state information for the socket and the TDS protocol
  * \param buffer buffer to store quoted id. If NULL do not write anything 
  *        (useful to compute quote length)
- * \param str    string to quote (not necessary null-terminated)
- * \param len    length of string (-1 for null terminated)
+ * \param str    string to quote (not necessary NUL-terminated)
+ * \param len    length of string (-1 for NUL-terminated)
  * \result written chars (not including needed terminator)
  */
 size_t
@@ -2777,8 +2772,7 @@ tds_cursor_get_cursor_info(TDSSOCKET *tds, TDSCURSOR *cursor, TDS_UINT *prow_num
 
 		/* Adjust current state */
 		tds->current_op = TDS_OP_NONE;
-		if (TDS_FAILED(retcode=tds_query_flush_packet(tds)))
-			return retcode;
+		TDS_PROPAGATE(tds_query_flush_packet(tds));
 
 		/* Process answer from server */
 		for (;;) {
@@ -3061,20 +3055,20 @@ tds_cursor_update(TDSSOCKET * tds, TDSCURSOR * cursor, TDS_CURSOR_OPERATION op, 
 
 /**
  * Check if a cursor is allocated into the server.
- * If not is allocated it assure is removed from the connection list
+ * If is not allocated it assures is removed from the connection list
  * \tds
- * \return 0 if not allocated <>0 otherwise
+ * \return true if allocated false otherwise
  */
-static int
+static bool
 tds_cursor_check_allocated(TDSCONNECTION * conn, TDSCURSOR * cursor)
 {
 	if (cursor->srv_status == TDS_CUR_ISTAT_UNUSED || (cursor->srv_status & TDS_CUR_ISTAT_DEALLOC) != 0
 	    || (IS_TDS7_PLUS(conn) && (cursor->srv_status & TDS_CUR_ISTAT_CLOSED) != 0)) {
 		tds_cursor_deallocated(conn, cursor);
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 /**
@@ -3141,7 +3135,7 @@ tds_deferred_cursor_dealloc(TDSCONNECTION *conn, TDSCURSOR * cursor)
 	if (!tds_cursor_check_allocated(conn, cursor))
 		return TDS_SUCCESS;
 
-	cursor->defer_close = 1;
+	cursor->defer_close = true;
 	conn->pending_close = 1;
 
 	return TDS_SUCCESS;
@@ -3427,8 +3421,6 @@ tds_submit_optioncmd(TDSSOCKET * tds, TDS_OPTION_CMD command, TDS_OPTION option,
 	tdsdump_log(TDS_DBG_FUNC, "tds_submit_optioncmd() \n");
  
 	if (IS_TDS50(tds->conn)) {
-		TDSRET rc;
- 
 		if (tds_set_state(tds, TDS_WRITING) != TDS_WRITING)
 			return TDS_FAIL;
  
@@ -3444,9 +3436,7 @@ tds_submit_optioncmd(TDSSOCKET * tds, TDS_OPTION_CMD command, TDS_OPTION option,
  
 		tds_query_flush_packet(tds);
  
-		rc = tds_process_simple_query(tds);
-		if (TDS_FAILED(rc))
-			return rc;
+		TDS_PROPAGATE(tds_process_simple_query(tds));
 		return TDS_SUCCESS;
 	}
  
@@ -3455,7 +3445,6 @@ tds_submit_optioncmd(TDSSOCKET * tds, TDS_OPTION_CMD command, TDS_OPTION option,
 
 	cmd[0] = 0;
 	if (command == TDS_OPT_SET) {
-		TDSRET rc;
 		char datefmt[4];
 
 		switch (option) {
@@ -3530,9 +3519,7 @@ tds_submit_optioncmd(TDSSOCKET * tds, TDS_OPTION_CMD command, TDS_OPTION option,
 			break;
 		}
 		tds_submit_query(tds, cmd);
-		rc = tds_process_simple_query(tds);
-		if (TDS_FAILED(rc))
-			return rc;
+		TDS_PROPAGATE(tds_process_simple_query(tds));
 	}
 	if (command == TDS_OPT_LIST) {
 		int optionval = 0;

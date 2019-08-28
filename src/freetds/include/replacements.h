@@ -61,11 +61,15 @@ int tds_vasprintf(char **ret, const char *fmt, va_list ap);
 #endif /* !HAVE_VASPRINTF */
 
 #if !HAVE_STRTOK_R
-/* Some MingW define strtok_r macro thread-safe but not reentrant but we
+/* Some MinGW define strtok_r macro thread-safe but not reentrant but we
    need both so avoid using the macro */
 #undef strtok_r
+#if defined(_WIN32) && HAVE_STRTOK_S
+#define strtok_r strtok_s
+#else
 char *tds_strtok_r(char *str, const char *sep, char **lasts);
 #define strtok_r tds_strtok_r
+#endif
 #endif /* !HAVE_STRTOK_R */
 
 #if !HAVE_STRSEP
@@ -76,6 +80,7 @@ char *tds_strsep(char **stringp, const char *delim);
 
 #if !HAVE_STRLCPY
 size_t tds_strlcpy(char *dest, const char *src, size_t len);
+#undef strlcpy
 #define strlcpy(d,s,l) tds_strlcpy(d,s,l)
 #endif
 
@@ -106,6 +111,7 @@ void tds_freeaddrinfo(struct tds_addrinfo *addr);
 
 #if !HAVE_STRLCAT
 size_t tds_strlcat(char *dest, const char *src, size_t len);
+#undef strlcat
 #define strlcat(d,s,l) tds_strlcat(d,s,l)
 #endif
 
@@ -116,7 +122,7 @@ char *tds_basename(char *path);
 
 /* 
  * Microsoft's C Runtime library is missing strcasecmp and strncasecmp. 
- * Other Win32 C runtime libraries, notably minwg, may define it. 
+ * Other Win32 C runtime libraries, notably MinGW, may define it.
  * There is no symbol uniquely defined in Microsoft's header files that 
  * can be used by the preprocessor to know whether we're compiling for
  * Microsoft's library or not (or which version).  Thus there's no
@@ -139,7 +145,7 @@ char *tds_basename(char *path);
 int tds_gettimeofday (struct timeval *tv, void *tz);
 #define gettimeofday tds_gettimeofday
 
-/* Older Mingw-w64 versions don't define these flags. */
+/* Older MinGW-w64 versions don't define these flags. */
 #if defined(__MINGW32__) && !defined(AI_ADDRCONFIG)
 #  define AI_ADDRCONFIG 0x00000400
 #endif
@@ -147,6 +153,12 @@ int tds_gettimeofday (struct timeval *tv, void *tz);
 #  define AI_V4MAPPED 0x00000800
 #endif
 
+#endif
+
+#if defined(_WIN32) && defined(_MSC_VER)
+#define tds_strtoll _strtoi64
+#else
+#define tds_strtoll strtoll
 #endif
 
 #if !HAVE_GETOPT
@@ -167,10 +179,6 @@ int tds_socketpair(int domain, int type, int protocol, TDS_SYS_SOCKET sv[2]);
 int tds_daemon(int no_chdir, int no_close);
 #define daemon(d,c) tds_daemon(d,c)
 #endif
-
-char *tds_getpassarg(char *arg);
-void tds_sleep_s(unsigned sec);
-void tds_sleep_ms(unsigned ms);
 
 #ifdef __cplusplus
 }

@@ -73,12 +73,22 @@
 #include <poll.h>
 #endif /* HAVE_POLL_H */
 
+#if HAVE_FCNTL_H
+#include <fcntl.h>
+#endif /* HAVE_FCNTL_H */
+
 #ifdef HAVE_SYS_EVENTFD_H
 #include <sys/eventfd.h>
 #endif /* HAVE_SYS_EVENTFD_H */
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
+#endif
+
 #include <freetds/tds.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/tls.h>
 #include "replacements.h"
 
@@ -105,7 +115,7 @@ tds_socket_init(void)
 {
 	WSADATA wsadata;
 
-	return WSAStartup(MAKEWORD(1, 1), &wsadata);
+	return WSAStartup(MAKEWORD(2, 2), &wsadata);
 }
 
 void
@@ -143,6 +153,10 @@ tds_socket_done(void)
 #elif defined(__VMS)
 #define TCP_NODELAY 1
 #define USE_NODELAY 1
+#endif
+
+#ifndef __APPLE__
+#undef SO_NOSIGPIPE
 #endif
 
 /**
@@ -196,158 +210,339 @@ tds_addrinfo2str(struct addrinfo *addr, char *name, int namemax)
 	return name;
 }
 
-static TDSERRNO
-tds_connect_socket(TDSSOCKET *tds, struct addrinfo *addr, unsigned int port, int timeout, int *p_oserr)
+/**
+ * Returns error stored in the socket
+ */
+static int
+tds_get_socket_error(TDS_SYS_SOCKET sock)
 {
-	SOCKLEN_T optlen;
-	TDSCONNECTION *conn = tds->conn;
-	char ipaddr[128];
+	int err;
+	SOCKLEN_T optlen = sizeof(err);
+	char *errstr;
 
-	int retval, len;
+	/* check socket error */
+	if (tds_getsockopt(sock, SOL_SOCKET, SO_ERROR, (char *) &err, &optlen) != 0) {
+		err = sock_errno;
+		errstr = sock_strerror(err);
+		tdsdump_log(TDS_DBG_ERROR, "getsockopt(2) failed: %s\n", errstr);
+		sock_strerror_free(errstr);
+	} else if (err != 0) {
+		errstr = sock_strerror(err);
+		tdsdump_log(TDS_DBG_ERROR, "getsockopt(2) reported: %s\n", errstr);
+		sock_strerror_free(errstr);
+	}
+	return err;
+}
+
+/**
+ * Setup the socket and attempt a connection.
+ * Function allocate the socket in *p_sock and try to start a connection.
+ * @param p_sock where returned socket is stored. Socket is stored even on error.
+ *        Can be INVALID_SOCKET.
+ * @param addr address to use for attempting the connection
+ * @param port port to connect to
+ * @param p_oserr where system error is returned
+ * @returns TDSEOK is success, TDSEINPROGRESS if connection attempt is started
+ *          or any other error.
+ */
+static TDSERRNO
+tds_setup_socket(TDS_SYS_SOCKET *p_sock, struct addrinfo *addr, unsigned int port, int *p_oserr)
+{
+	enum {
+		TDS_SOCKET_KEEPALIVE_IDLE = 40,
+		TDS_SOCKET_KEEPALIVE_INTERVAL = 2
+	};
+	TDS_SYS_SOCKET sock;
+	char ipaddr[128];
+	int retval, len, err;
+	char *errstr;
+#if defined(_WIN32)
+	struct tcp_keepalive keepalive = {
+		TRUE,
+		TDS_SOCKET_KEEPALIVE_IDLE * 1000,
+		TDS_SOCKET_KEEPALIVE_INTERVAL * 1000
+	};
+	DWORD written;
+#endif
+
+	*p_oserr = 0;
 
 	tds_addrinfo_set_port(addr, port);
 	tds_addrinfo2str(addr, ipaddr, sizeof(ipaddr));
 
-	if (TDS_IS_SOCKET_INVALID(conn->s))
-		return TDSECONN;
-
-	*p_oserr = 0;
-
-	tdsdump_log(TDS_DBG_INFO1, "Connecting to %s port %d (TDS version %d.%d)\n", 
-			ipaddr, port,
-			TDS_MAJOR(conn), TDS_MINOR(conn));
-
-#ifdef  DOS32X			/* the other connection doesn't work  on WATTCP32 */
-	if (connect(conn->s, addr->ai_addr, addr->ai_addrlen) < 0) {
-		*p_oserr = sock_errno;
-		tdsdump_log(TDS_DBG_ERROR, "tds_open_socket(): %s:%d", ipaddr, port);
-		return TDSECONN;
-	}
-#else
-	if (!timeout) {
-		/* A timeout of zero means wait forever; 90,000 seconds will feel like forever. */
-		timeout = 90000;
-	}
-
-	if ((*p_oserr = tds_socket_set_nonblocking(conn->s)) != 0) {
-		tds_connection_close(conn);
-		return TDSEUSCT; 	/* close enough: "Unable to set communications timer" */
-	}
-	retval = connect(conn->s, addr->ai_addr, addr->ai_addrlen);
-	if (retval == 0) {
-		tdsdump_log(TDS_DBG_INFO2, "connection established\n");
-	} else {
-		int err = *p_oserr = sock_errno;
-		char *errstr = sock_strerror(err);
-		tdsdump_log(TDS_DBG_ERROR, "tds_open_socket: connect(2) returned \"%s\"\n", errstr);
-		sock_strerror_free(errstr);
-#if DEBUGGING_CONNECTING_PROBLEM
-		if (err != ECONNREFUSED && err != ENETUNREACH && err != TDSSOCK_EINPROGRESS) {
-			tdsdump_dump_buf(TDS_DBG_ERROR, "Contents of sockaddr_in", addr->ai_addr, addr->ai_addrlen);
-			tdsdump_log(TDS_DBG_ERROR, 	" sockaddr_in:\t"
-							      "%s = %x\n" 
-							"\t\t\t%s = %x\n" 
-							"\t\t\t%s = %s\n"
-							, "sin_family", addr->ai_family
-							, "port", port
-							, "address", ipaddr
-							);
-		}
-#endif
-		if (err != TDSSOCK_EINPROGRESS)
-			return TDSECONN;
-		
-		*p_oserr = TDSSOCK_ETIMEDOUT;
-		if (tds_select(tds, TDSSELWRITE|TDSSELERR, timeout) == 0)
-			return TDSECONN;
-	}
-#endif	/* not DOS32X */
-
-	/* check socket error */
-	optlen = sizeof(len);
-	len = 0;
-	if (tds_getsockopt(conn->s, SOL_SOCKET, SO_ERROR, (char *) &len, &optlen) != 0) {
-		char *errstr = sock_strerror(*p_oserr = sock_errno);
-		tdsdump_log(TDS_DBG_ERROR, "getsockopt(2) failed: %s\n", errstr);
-		sock_strerror_free(errstr);
-		return TDSECONN;
-	}
-	if (len != 0) {
-		char *errstr = sock_strerror(*p_oserr = len);
-		tdsdump_log(TDS_DBG_ERROR, "getsockopt(2) reported: %s\n", errstr);
-		sock_strerror_free(errstr);
-		return TDSECONN;
-	}
-
-	return TDSEOK;
-}
-
-TDSERRNO
-tds_open_socket(TDSSOCKET *tds, struct addrinfo *addr, unsigned int port, int timeout, int *p_oserr)
-{
-	TDSCONNECTION *conn = tds->conn;
-	int len;
-	TDSERRNO tds_error;
-
-	*p_oserr = 0;
-
-	conn->s = socket(addr->ai_family, SOCK_STREAM, 0);
-	if (TDS_IS_SOCKET_INVALID(conn->s)) {
-		char *errstr = sock_strerror(*p_oserr = sock_errno);
+	*p_sock = sock = socket(addr->ai_family, SOCK_STREAM, 0);
+	if (TDS_IS_SOCKET_INVALID(sock)) {
+		errstr = sock_strerror(*p_oserr = sock_errno);
 		tdsdump_log(TDS_DBG_ERROR, "socket creation error: %s\n", errstr);
 		sock_strerror_free(errstr);
 		return TDSESOCK;
 	}
-	tds->state = TDS_IDLE;
 
 #ifdef SO_KEEPALIVE
 	len = 1;
-	setsockopt(conn->s, SOL_SOCKET, SO_KEEPALIVE, (const void *) &len, sizeof(len));
+	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (const void *) &len, sizeof(len));
 #endif
 
-#if defined(TCP_KEEPIDLE) && defined(TCP_KEEPINTVL)
-	len = 40;
-	setsockopt(conn->s, SOL_TCP, TCP_KEEPIDLE, (const void *) &len, sizeof(len));
-	len = 2;
-	setsockopt(conn->s, SOL_TCP, TCP_KEEPINTVL, (const void *) &len, sizeof(len));
+#if defined(_WIN32)
+	if (WSAIoctl(sock, SIO_KEEPALIVE_VALS, &keepalive, sizeof(keepalive),
+		     NULL, 0, &written, NULL, NULL) != 0) {
+		errstr = sock_strerror(*p_oserr = sock_errno);
+		tdsdump_log(TDS_DBG_ERROR, "error setting keepalive: %s\n", errstr);
+		sock_strerror_free(errstr);
+	}
+#elif defined(TCP_KEEPIDLE) && defined(TCP_KEEPINTVL)
+	len = TDS_SOCKET_KEEPALIVE_IDLE;
+	setsockopt(sock, SOL_TCP, TCP_KEEPIDLE, (const void *) &len, sizeof(len));
+	len = TDS_SOCKET_KEEPALIVE_INTERVAL;
+	setsockopt(sock, SOL_TCP, TCP_KEEPINTVL, (const void *) &len, sizeof(len));
 #endif
 
-#if defined(__APPLE__) && defined(SO_NOSIGPIPE)
+#if defined(SO_NOSIGPIPE)
 	len = 1;
-	if (setsockopt(conn->s, SOL_SOCKET, SO_NOSIGPIPE, (const void *) &len, sizeof(len))) {
+	if (setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, (const void *) &len, sizeof(len))) {
 		*p_oserr = sock_errno;
-		tds_connection_close(conn);
 		return TDSESOCK;
 	}
 #endif
 
 	len = 1;
 #if defined(USE_NODELAY)
-	setsockopt(conn->s, SOL_TCP, TCP_NODELAY, (const void *) &len, sizeof(len));
+	setsockopt(sock, SOL_TCP, TCP_NODELAY, (const void *) &len, sizeof(len));
 #elif defined(USE_CORK)
-	if (setsockopt(conn->s, SOL_TCP, TCP_CORK, (const void *) &len, sizeof(len)) < 0)
-		setsockopt(conn->s, SOL_TCP, TCP_NODELAY, (const void *) &len, sizeof(len));
+	setsockopt(sock, SOL_TCP, TCP_NODELAY, (const void *) &len, sizeof(len));
+	setsockopt(sock, SOL_TCP, TCP_CORK, (const void *) &len, sizeof(len));
 #else
 #error One should be defined
 #endif
 
-	while ((tds_error = tds_connect_socket(tds, addr, port, timeout, p_oserr)) != TDSEOK) {
-		addr = addr->ai_next;
-		if (!addr) {
-			tds_connection_close(conn);
-			tdsdump_log(TDS_DBG_ERROR, "tds_open_socket() failed\n");
-			return tds_error;
+	tdsdump_log(TDS_DBG_INFO1, "Connecting to %s port %d\n", ipaddr, port);
+
+#ifdef  DOS32X			/* the other connection doesn't work  on WATTCP32 */
+	if (connect(sock, addr->ai_addr, addr->ai_addrlen) < 0) {
+		*p_oserr = sock_errno;
+		tdsdump_log(TDS_DBG_ERROR, "tds_setup_socket(): %s:%d", ipaddr, port);
+		return TDSECONN;
+	}
+	return TDSEOK;
+#else
+	if ((*p_oserr = tds_socket_set_nonblocking(sock)) != 0) {
+		return TDSEUSCT; 	/* close enough: "Unable to set communications timer" */
+	}
+	retval = connect(sock, addr->ai_addr, addr->ai_addrlen);
+	if (retval == 0) {
+		tdsdump_log(TDS_DBG_INFO2, "connection established\n");
+		return TDSEOK;
+	}
+
+	/* got some kind of error */
+	err = *p_oserr = sock_errno;
+	errstr = sock_strerror(err);
+	tdsdump_log(TDS_DBG_ERROR, "tds_setup_socket: connect(2) returned \"%s\"\n", errstr);
+	sock_strerror_free(errstr);
+
+	/* connection attempt started */
+	if (err == TDSSOCK_EINPROGRESS)
+		return TDSEINPROGRESS;
+
+#if DEBUGGING_CONNECTING_PROBLEM
+	if (err != ECONNREFUSED && err != ENETUNREACH) {
+		tdsdump_dump_buf(TDS_DBG_ERROR, "Contents of sockaddr_in", addr->ai_addr, addr->ai_addrlen);
+		tdsdump_log(TDS_DBG_ERROR, 	" sockaddr_in:\t"
+						      "%s = %x\n" 
+						"\t\t\t%s = %x\n" 
+						"\t\t\t%s = %s\n"
+						, "sin_family", addr->ai_family
+						, "port", port
+						, "address", ipaddr
+						);
+	}
+#endif
+	return TDSECONN;
+#endif	/* not DOS32X */
+}
+
+typedef struct {
+	struct addrinfo *addr;
+	unsigned next_retry_time;
+	unsigned retry_count;
+} retry_addr;
+
+TDSERRNO
+tds_open_socket(TDSSOCKET *tds, struct addrinfo *addr, unsigned int port, int timeout, int *p_oserr)
+{
+	TDSCONNECTION *conn = tds->conn;
+	int len, i;
+	TDSERRNO tds_error;
+	struct addrinfo *curr_addr;
+	struct pollfd *fds;
+	retry_addr *addresses;
+	unsigned curr_time, start_time;
+	typedef struct {
+		retry_addr retry;
+		struct pollfd fd;
+	} alloc_addr;
+	enum { MAX_RETRY = 10 };
+
+	*p_oserr = 0;
+
+	if (!addr)
+		return TDSECONN;
+
+	tdsdump_log(TDS_DBG_INFO1, "Connecting with protocol version %d.%d\n",
+		    TDS_MAJOR(conn), TDS_MINOR(conn));
+
+	for (len = 0, curr_addr = addr; curr_addr != NULL; curr_addr = curr_addr->ai_next)
+		++len;
+
+	addresses = (retry_addr *) tds_new0(alloc_addr, len);
+	if (!addresses)
+		return TDSEMEM;
+	fds = (struct pollfd *) &addresses[len];
+
+	tds_error = TDSECONN;
+
+	/* fill all structures */
+	curr_time = start_time = tds_gettime_ms();
+	for (len = 0, curr_addr = addr; curr_addr != NULL; curr_addr = curr_addr->ai_next) {
+		fds[len].fd = INVALID_SOCKET;
+		addresses[len].addr = curr_addr;
+		addresses[len].next_retry_time = curr_time;
+		addresses[len].retry_count = 0;
+		++len;
+	}
+
+	/* if we have only one address means that availability groups feature is not
+	 * present, avoid to check the addresses multiple times */
+	if (len == 1)
+		addresses[0].retry_count = MAX_RETRY;
+
+	timeout *= 1000;
+	if (!timeout) {
+		/* A timeout of zero means wait forever */
+		timeout = -1;
+	}
+
+	/* now the list is full with sockets trying to connect */
+	while (len) {
+		int rc, poll_timeout = timeout;
+
+		/* timeout */
+		if (poll_timeout >= 0) {
+			if (curr_time - start_time > (unsigned) poll_timeout) {
+				*p_oserr = TDSSOCK_ETIMEDOUT;
+				goto exit;
+			}
+			poll_timeout -= curr_time - start_time;
+		}
+
+		/* try again if needed */
+		for (i = 0; i < len; ++i) {
+			int time_left;
+
+			if (!TDS_IS_SOCKET_INVALID(fds[i].fd))
+				continue;
+			time_left = addresses[i].next_retry_time - curr_time;
+			if (time_left <= 0) {
+				TDS_SYS_SOCKET sock;
+				tds_error = tds_setup_socket(&sock, addresses[i].addr, port, p_oserr);
+				switch (tds_error) {
+				case TDSEOK:
+					/* connected! */
+					/* free other sockets and continue with this one */
+					conn->s = sock;
+					tds_error = TDSEOK;
+					goto exit;
+				case TDSEINPROGRESS:
+					/* save socket in the list */
+					fds[i].fd = sock;
+					break;
+				default:
+					/* error, continue with other addresses */
+					if (!TDS_IS_SOCKET_INVALID(sock))
+						CLOSESOCKET(sock);
+					--len;
+					fds[i] = fds[len];
+					addresses[i] = addresses[len];
+					--i;
+					continue;
+				}
+			} else {
+				/* update timeout */
+				if (time_left < poll_timeout || poll_timeout < 0)
+					poll_timeout = time_left;
+			}
+		}
+
+		/* wait activities on file descriptors */
+		for (i = 0; i < len; ++i) {
+			fds[i].revents = 0;
+			fds[i].events = TDSSELWRITE|TDSSELERR;
+		}
+		tds_error = TDSECONN;
+		rc = poll(fds, len, poll_timeout);
+		i = sock_errno; /* save to avoid overrides */
+		curr_time = tds_gettime_ms();
+
+		/* error */
+		if (rc < 0) {
+			*p_oserr = i;
+			if (*p_oserr == TDSSOCK_EINTR)
+				continue;
+			goto exit;
+		}
+
+		/* got some event on file descriptors */
+		for (i = 0; i < len; ++i) {
+			if (TDS_IS_SOCKET_INVALID(fds[i].fd))
+				continue;
+			if (!fds[i].revents)
+				continue;
+			*p_oserr = tds_get_socket_error(fds[i].fd);
+			if (*p_oserr || (fds[i].revents & POLLERR) != 0) {
+				/* error, remove from list and possibly make
+				 * the loop exit */
+				CLOSESOCKET(fds[i].fd);
+				fds[i].fd = INVALID_SOCKET;
+				addresses[i].next_retry_time = curr_time + 1000;
+				if (++addresses[i].retry_count >= MAX_RETRY || len == 1) {
+					--len;
+					fds[i] = fds[len];
+					addresses[i] = addresses[len];
+					--i;
+				}
+				continue;
+			}
+			if (fds[i].revents & POLLOUT) {
+				conn->s = fds[i].fd;
+				fds[i].fd = INVALID_SOCKET;
+				tds_error = TDSEOK;
+				goto exit;
+			}
 		}
 	}
 
-	tdsdump_log(TDS_DBG_INFO2, "tds_open_socket() succeeded\n");
-	return TDSEOK;
+exit:
+	if (tds_error != TDSEOK) {
+		tdsdump_log(TDS_DBG_ERROR, "tds_open_socket() failed\n");
+	} else {
+		tdsdump_log(TDS_DBG_INFO2, "tds_open_socket() succeeded\n");
+		tds->state = TDS_IDLE;
+	}
+
+	while (--len >= 0) {
+		if (!TDS_IS_SOCKET_INVALID(fds[len].fd))
+			CLOSESOCKET(fds[len].fd);
+	}
+	free(addresses);
+	return tds_error;
 }
 
 /**
- * Close current socket
- * for last socket close entire connection
- * for MARS send FIN request
+ * Close current socket.
+ * For last socket close entire connection.
+ * For MARS send FIN request.
+ * This attempts a graceful disconnection, for ungraceful call
+ * tds_connection_close.
  */
 void
 tds_close_socket(TDSSOCKET * tds)
@@ -371,7 +566,7 @@ tds_close_socket(TDSSOCKET * tds)
 		}
 #else
 		tds_disconnect(tds);
-		if (CLOSESOCKET(tds_get_s(tds)) == -1)
+		if (!TDS_IS_SOCKET_INVALID(tds_get_s(tds)) && CLOSESOCKET(tds_get_s(tds)) == -1)
 			tdserror(tds_get_ctx(tds), tds,  TDSECLOS, sock_errno);
 		tds_set_s(tds, INVALID_SOCKET);
 		tds_set_state(tds, TDS_DEAD);
@@ -379,11 +574,12 @@ tds_close_socket(TDSSOCKET * tds)
 	}
 }
 
-#if ENABLE_ODBC_MARS
 void
 tds_connection_close(TDSCONNECTION *conn)
 {
+#if ENABLE_ODBC_MARS
 	unsigned n = 0;
+#endif
 
 	if (!TDS_IS_SOCKET_INVALID(conn->s)) {
 		/* TODO check error ?? how to return it ?? */
@@ -391,13 +587,16 @@ tds_connection_close(TDSCONNECTION *conn)
 		conn->s = INVALID_SOCKET;
 	}
 
+#if ENABLE_ODBC_MARS
 	tds_mutex_lock(&conn->list_mtx);
 	for (; n < conn->num_sessions; ++n)
 		if (TDSSOCKET_VALID(conn->sessions[n]))
 			tds_set_state(conn->sessions[n], TDS_DEAD);
 	tds_mutex_unlock(&conn->list_mtx);
-}
+#else
+	tds_set_state((TDSSOCKET* ) conn, TDS_DEAD);
 #endif
+}
 
 /**
  * Select on a socket until it's available or the timeout expires. 
@@ -565,7 +764,7 @@ tds_socket_write(TDSCONNECTION *conn, TDSSOCKET *tds, const unsigned char *buf, 
 
 #if ENABLE_EXTRA_CHECKS
 	/* this simulate the fact that send can return less bytes */
-	if (buflen >= 5) {
+	if (buflen >= 11) {
 		static int cnt = 0;
 		if (++cnt == 5) {
 			cnt = 0;
@@ -574,7 +773,7 @@ tds_socket_write(TDSCONNECTION *conn, TDSSOCKET *tds, const unsigned char *buf, 
 	}
 #endif
 
-#if defined(__APPLE__) && defined(SO_NOSIGPIPE)
+#if defined(SO_NOSIGPIPE)
 	len = send(conn->s, buf, buflen, 0);
 #else
 	len = WRITESOCKET(conn->s, buf, buflen);
@@ -583,7 +782,7 @@ tds_socket_write(TDSCONNECTION *conn, TDSSOCKET *tds, const unsigned char *buf, 
 		return len;
 
 	err = sock_errno;
-	if (0 == len || TDSSOCK_WOULDBLOCK(err))
+	if (0 == len || TDSSOCK_WOULDBLOCK(err) || err == TDSSOCK_EINTR)
 		return 0;
 
 	assert(len < 0);
@@ -605,7 +804,16 @@ tds_wakeup_init(TDSPOLLWAKEUP *wakeup)
 
 	wakeup->s_signal = wakeup->s_signaled = INVALID_SOCKET;
 #if defined(__linux__) && HAVE_EVENTFD
+#  ifdef EFD_CLOEXEC
 	ret = eventfd(0, EFD_CLOEXEC|EFD_NONBLOCK);
+#  else
+	ret = -1;
+#  endif
+	/* Linux version up to 2.6.26 do not support flags, try without */
+	if (ret < 0 && (ret = eventfd(0, 0)) >= 0) {
+		fcntl(ret, F_SETFD, fcntl(ret, F_GETFD, 0) | FD_CLOEXEC);
+		fcntl(ret, F_SETFL, fcntl(ret, F_GETFL, 0) | O_NONBLOCK);
+	}
 	if (ret >= 0) {
 		wakeup->s_signaled = ret;
 		return 0;
@@ -634,7 +842,7 @@ tds_wakeup_send(TDSPOLLWAKEUP *wakeup, char cancel)
 {
 #if defined(__linux__) && HAVE_EVENTFD
 	if (wakeup->s_signal == -1) {
-		TDS_UINT8 one = 1;
+		uint64_t one = 1;
 		(void) write(wakeup->s_signaled, &one, sizeof(one));
 		return;
 	}
@@ -844,7 +1052,7 @@ tds_connection_write(TDSSOCKET *tds, const unsigned char *buf, int buflen, int f
 	int sent;
 	TDSCONNECTION *conn = tds->conn;
 
-#if !defined(_WIN32) && !defined(MSG_NOSIGNAL) && !defined(DOS32X) && (!defined(__APPLE__) || !defined(SO_NOSIGPIPE))
+#if !defined(_WIN32) && !defined(MSG_NOSIGNAL) && !defined(DOS32X) && !defined(SO_NOSIGPIPE)
 	void (*oldsig) (int);
 
 	oldsig = signal(SIGPIPE, SIG_IGN);
@@ -866,7 +1074,7 @@ tds_connection_write(TDSSOCKET *tds, const unsigned char *buf, int buflen, int f
 	if (final && sent >= buflen)
 		tds_socket_flush(tds_get_s(tds));
 
-#if !defined(_WIN32) && !defined(MSG_NOSIGNAL) && !defined(DOS32X) && (!defined(__APPLE__) || !defined(SO_NOSIGPIPE))
+#if !defined(_WIN32) && !defined(MSG_NOSIGNAL) && !defined(DOS32X) && !defined(SO_NOSIGPIPE)
 	if (signal(SIGPIPE, oldsig) == SIG_ERR) {
 		tdsdump_log(TDS_DBG_WARN, "TDS: Warning: Couldn't reset SIGPIPE signal to previous value\n");
 	}

@@ -118,7 +118,8 @@ main(int argc, char **argv)
 			CONV_RESULT src;
 
 			memset(&src, 0, sizeof(src));
-			result = tds_convert(ctx, srctype, (const TDS_CHAR *) &src, 4, desttype, &cr);
+			srclen = 4;
+			result = tds_convert(ctx, srctype, (const TDS_CHAR *) &src, srclen, desttype, &cr);
 			if (result >= 0)
 				free_convert(desttype, &cr);
 			if (result != TDS_CONVERT_NOAVAIL) {
@@ -161,18 +162,18 @@ main(int argc, char **argv)
 				src = "Jan  1, 1999";
 				break;
 			case SYBMSDATE:
-			case SYBMSDATETIME2:
-			case SYBMSDATETIMEOFFSET:
 			case SYBDATE:
 				src = "2012-11-27";
 				break;
-			case SYBMSTIME:
 			case SYBTIME:
 				src = "15:27:12";
 				break;
+			case SYBMSTIME:
 			case SYB5BIGTIME:
 				src = "15:27:12.327862";
 				break;
+			case SYBMSDATETIME2:
+			case SYBMSDATETIMEOFFSET:
 			case SYB5BIGDATETIME:
 				src = "2015-09-12 21:48:12.638161";
 				break;
@@ -424,7 +425,7 @@ main(int argc, char **argv)
 		result = gettimeofday(&end, NULL);
 		endtime = (double) end.tv_sec + (double) end.tv_usec * 0.000001;
 
-		if (endtime != starttime) {
+		if (endtime != starttime && iterations) {
 			printf("%9.0f iterations/second converting %13s => %s.\n",
 				j / (endtime - starttime), tds_prtype(srctype), tds_prtype(desttype));
 		}

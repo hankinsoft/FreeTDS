@@ -21,6 +21,10 @@
 #ifndef _tds_h_
 #define _tds_h_
 
+#ifndef _freetds_config_h_
+#error should include config.h before
+#endif
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
@@ -40,6 +44,10 @@
 #include <arpa/inet.h>
 #endif /* HAVE_ARPA_INET_H */
 
+#if HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif /* HAVE_SYS_SOCKET_H */
+
 /* forward declaration */
 typedef struct tdsiconvinfo TDSICONV;
 typedef struct tds_connection TDSCONNECTION;
@@ -52,6 +60,8 @@ typedef struct tds_bcpinfo TDSBCPINFO;
 #include <freetds/sysdep_private.h>
 #include <freetds/thread.h>
 #include <freetds/bool.h>
+#include <freetds/macros.h>
+#include <freetds/utils/string.h>
 #include "replacements.h"
 
 #include <freetds/pushvis.h>
@@ -87,16 +97,6 @@ typedef struct tds_compiletime_settings
 } TDS_COMPILETIME_SETTINGS;
 
 /**
- * Structure to hold a string.
- * Use tds_dstr_* functions/macros, do not access members directly.
- * There should be always a buffer.
- */
-typedef struct tds_dstr {
-	size_t dstr_size;
-	char dstr_s[1];
-} *DSTR;
-
-/**
  * @file tds.h
  * Main include file for libtds
  */
@@ -119,19 +119,19 @@ typedef struct tds_dstr {
  * these. (In the TDS layer only, the API layers have their
  * own typedefs which equate to these).
  */
-typedef char TDS_CHAR;					/*  8-bit char     */
-typedef unsigned char TDS_UCHAR;			/*  8-bit uchar    */
-typedef unsigned char TDS_TINYINT;			/*  8-bit unsigned */
-typedef tds_sysdep_int16_type TDS_SMALLINT;		/* 16-bit int      */
-typedef unsigned tds_sysdep_int16_type TDS_USMALLINT;	/* 16-bit unsigned */
-typedef tds_sysdep_int32_type TDS_INT;			/* 32-bit int      */
-typedef unsigned tds_sysdep_int32_type TDS_UINT;	/* 32-bit unsigned */
-typedef tds_sysdep_real32_type TDS_REAL;		/* 32-bit real     */
-typedef tds_sysdep_real64_type TDS_FLOAT;		/* 64-bit real     */
-typedef tds_sysdep_int64_type TDS_INT8;			/* 64-bit integer  */
-typedef unsigned tds_sysdep_int64_type TDS_UINT8;	/* 64-bit unsigned */
-typedef tds_sysdep_intptr_type TDS_INTPTR;
-typedef unsigned tds_sysdep_intptr_type TDS_UINTPTR;
+typedef char TDS_CHAR;				/*  8-bit char     */
+typedef uint8_t TDS_UCHAR;			/*  8-bit uchar    */
+typedef uint8_t  TDS_TINYINT;			/*  8-bit unsigned */
+typedef int16_t  TDS_SMALLINT;			/* 16-bit int      */
+typedef uint16_t TDS_USMALLINT;			/* 16-bit unsigned */
+typedef int32_t TDS_INT;			/* 32-bit int      */
+typedef uint32_t TDS_UINT;			/* 32-bit unsigned */
+typedef int64_t TDS_INT8;			/* 64-bit integer  */
+typedef uint64_t TDS_UINT8;			/* 64-bit unsigned */
+typedef intptr_t TDS_INTPTR;
+typedef uintptr_t TDS_UINTPTR;
+typedef tds_sysdep_real32_type TDS_REAL;	/* 32-bit real     */
+typedef tds_sysdep_real64_type TDS_FLOAT;	/* 64-bit real     */
 
 #include <freetds/proto.h>
 
@@ -147,7 +147,7 @@ typedef struct
 	TDS_INT      date;	/**< date, 0 = 1900-01-01 */
 	TDS_SMALLINT offset;	/**< time offset */
 	TDS_USMALLINT time_prec:3;
-	TDS_USMALLINT _res:10;
+	TDS_USMALLINT _tds_reserved:10;
 	TDS_USMALLINT has_time:1;
 	TDS_USMALLINT has_date:1;
 	TDS_USMALLINT has_offset:1;
@@ -183,6 +183,8 @@ typedef int TDSRET;
 #define TDS_CANCELLED        ((TDSRET)-2)
 #define TDS_FAILED(rc) ((rc)<0)
 #define TDS_SUCCEED(rc) ((rc)>=0)
+#define TDS_PROPAGATE(rc) \
+	do { TDSRET _tds_ret = (rc); if (TDS_FAILED(_tds_ret)) return _tds_ret; } while(0)
 
 #define TDS_INT_CONTINUE 1
 #define TDS_INT_CANCEL 2
@@ -272,6 +274,7 @@ enum tds_end
  */
 typedef enum {	TDSEOK    = TDS_SUCCESS, 
 		TDSEVERDOWN    =  100,
+		TDSEINPROGRESS,
 		TDSEICONVIU    = 2400, 
 		TDSEICONVAVAIL = 2401, 
 		TDSEICONVO     = 2402, 
@@ -331,45 +334,11 @@ typedef union tds_option_arg
 
 
 typedef enum tds_encryption_level {
-	TDS_ENCRYPTION_OFF, TDS_ENCRYPTION_REQUEST, TDS_ENCRYPTION_REQUIRE
+	TDS_ENCRYPTION_DEFAULT,
+	TDS_ENCRYPTION_OFF,
+	TDS_ENCRYPTION_REQUEST,
+	TDS_ENCRYPTION_REQUIRE
 } TDS_ENCRYPTION_LEVEL;
-
-#define TDS_ZERO_FREE(x) do {free((x)); (x) = NULL;} while(0)
-#define TDS_VECTOR_SIZE(x) (sizeof(x)/sizeof(x[0]))
-#ifdef offsetof
-#define TDS_OFFSET(str, field) offsetof(str, field)
-#else
-#define TDS_OFFSET(str, field) (((char*)&((str*)0)->field)-((char*)0))
-#endif
-
-#if defined(__GNUC__) && __GNUC__ >= 3
-# define TDS_LIKELY(x)	__builtin_expect(!!(x), 1)
-# define TDS_UNLIKELY(x)	__builtin_expect(!!(x), 0)
-#else
-# define TDS_LIKELY(x)	(x)
-# define TDS_UNLIKELY(x)	(x)
-#endif
-
-#if ENABLE_EXTRA_CHECKS
-# if defined(__GNUC__) && __GNUC__ >= 2
-# define TDS_COMPILE_CHECK(name,check) \
-    extern int name[(check)?1:-1] __attribute__ ((unused))
-# else
-# define TDS_COMPILE_CHECK(name,check) \
-    extern int name[(check)?1:-1]
-# endif
-# define TDS_EXTRA_CHECK(stmt) stmt
-#else
-# define TDS_COMPILE_CHECK(name,check) \
-    extern int disabled_check_##name
-# define TDS_EXTRA_CHECK(stmt)
-#endif
-
-#if ENABLE_EXTRA_CHECKS && defined(__GNUC__) && __GNUC__ >= 4
-#define TDS_WUR __attribute__ ((__warn_unused_result__))
-#else
-#define TDS_WUR
-#endif
 
 /*
  * TODO use system macros for optimization
@@ -377,18 +346,16 @@ typedef enum tds_encryption_level {
  * check if unaligned access and use fast write/read when implemented
  */
 #define TDS_BYTE_SWAP16(value)                 \
-         (((((unsigned short)value)<<8) & 0xFF00)   | \
-          ((((unsigned short)value)>>8) & 0x00FF))
+         (((((uint16_t)value)<<8) & 0xFF00u) | \
+          ((((uint16_t)value)>>8) & 0x00FFu))
 
 #define TDS_BYTE_SWAP32(value)                     \
-         (((((unsigned long)value)<<24) & 0xFF000000)  | \
-          ((((unsigned long)value)<< 8) & 0x00FF0000)  | \
-          ((((unsigned long)value)>> 8) & 0x0000FF00)  | \
-          ((((unsigned long)value)>>24) & 0x000000FF))
+         (((((uint32_t)value)<<24) & 0xFF000000u)| \
+          ((((uint32_t)value)<< 8) & 0x00FF0000u)| \
+          ((((uint32_t)value)>> 8) & 0x0000FF00u)| \
+          ((((uint32_t)value)>>24) & 0x000000FFu))
 
-#define is_end_token(x) (x==TDS_DONE_TOKEN    || \
-			x==TDS_DONEPROC_TOKEN    || \
-			x==TDS_DONEINPROC_TOKEN)
+#define is_end_token(x) ((x) >= TDS_DONE_TOKEN && (x) <= TDS_DONEINPROC_TOKEN)
 
 enum {
 	TDS_TYPEFLAG_INVALID  = 0,
@@ -398,13 +365,14 @@ enum {
 	TDS_TYPEFLAG_COLLATE  = 8,
 	TDS_TYPEFLAG_ASCII    = 16,
 	TDS_TYPEFLAG_UNICODE  = 32,
-	TDS_TYPEFLAG_NUMERIC  = 64,
+	TDS_TYPEFLAG_BINARY   = 64,
 	TDS_TYPEFLAG_DATETIME = 128,
+	TDS_TYPEFLAG_NUMERIC  = 256,
 };
 
-extern const unsigned char tds_type_flags_ms[256];
+extern const uint16_t tds_type_flags_ms[256];
 #if 0
-extern const unsigned char tds_type_flags_syb[256];
+extern const uint16_t tds_type_flags_syb[256];
 extern const char *const tds_type_names[256];
 #endif
 
@@ -423,6 +391,7 @@ extern const char *const tds_type_names[256];
 #define is_unicode_type(x)    ((tds_type_flags_ms[x] & TDS_TYPEFLAG_UNICODE) != 0)
 #define is_collate_type(x)    ((tds_type_flags_ms[x] & TDS_TYPEFLAG_COLLATE) != 0)
 #define is_ascii_type(x)      ((tds_type_flags_ms[x] & TDS_TYPEFLAG_ASCII) != 0)
+#define is_binary_type(x)     ((tds_type_flags_ms[x] & TDS_TYPEFLAG_BINARY) != 0)
 #define is_char_type(x)       ((tds_type_flags_ms[x] & (TDS_TYPEFLAG_ASCII|TDS_TYPEFLAG_UNICODE)) != 0)
 #define is_similar_type(x, y) (is_char_type(x) && is_char_type(y))
 static inline
@@ -442,19 +411,9 @@ bool is_tds_type_valid(int type)
 #define TDS_DEF_BLKSZ		512
 #define TDS_DEF_CHARSET		"iso_1"
 #define TDS_DEF_LANG		"us_english"
-
-#if TDS42
-#define TDS_DEFAULT_VERSION	0x402
-#define TDS_DEF_PORT		1433
-#elif TDS46
-#define TDS_DEFAULT_VERSION	0x406
-#define TDS_DEF_PORT		4000
-#elif TDS50
+#if TDS50
 #define TDS_DEFAULT_VERSION	0x500
 #define TDS_DEF_PORT		4000
-#elif TDS70
-#define TDS_DEFAULT_VERSION	0x700
-#define TDS_DEF_PORT		1433
 #elif TDS71
 #define TDS_DEFAULT_VERSION	0x701
 #define TDS_DEF_PORT		1433
@@ -486,7 +445,7 @@ bool is_tds_type_valid(int type)
 #define TDS_STR_HOST     "host"
 #define TDS_STR_PORT     "port"
 #define TDS_STR_TEXTSZ   "text size"
-/* for big endian hosts */
+/* for big endian hosts, obsolete, ignored */
 #define TDS_STR_EMUL_LE	"emulate little endian"
 #define TDS_STR_CHARSET	"charset"
 #define TDS_STR_CLCHARSET	"client charset"
@@ -520,6 +479,10 @@ bool is_tds_type_valid(int type)
 #define TDS_STR_DBFILENAME	"database filename"
 /* Application Intent MSSQL 2012 support */
 #define TDS_STR_READONLY_INTENT "read-only intent"
+/* configurable cipher suite to send to openssl's SSL_set_cipher_list() function */
+#define TLS_STR_OPENSSL_CIPHERS "openssl ciphers"
+/* enable old TLS v1, required for instance if you are using a really old Windows XP */
+#define TDS_STR_ENABLE_TLS_V1 "enable tls v1"
 
 
 /* TODO do a better check for alignment than this */
@@ -527,7 +490,7 @@ typedef union
 {
 	void *p;
 	int i;
-	TDS_INT8 ui;
+	int64_t ui;
 } tds_align_struct;
 
 #define TDS_ALIGN_SIZE sizeof(tds_align_struct)
@@ -561,6 +524,7 @@ typedef struct tds_login
 	DSTR db_filename;		/**< database filename to attach (MSSQL) */
 	DSTR cafile;			/**< certificate authorities file */
 	DSTR crlfile;			/**< certificate revocation file */
+	DSTR openssl_ciphers;
 	DSTR app_name;
 	DSTR user_name;	    	/**< account for login */
 	DSTR password;	    	/**< password of account login */
@@ -575,20 +539,20 @@ typedef struct tds_login
 	DSTR database;
 
 	struct addrinfo *ip_addrs;	  		/**< ip(s) of server */
-	struct addrinfo *connected_addr;	/* ip of connected server */
 	DSTR instance_name;
 	DSTR dump_file;
 	int debug_flags;
 	int text_size;
+	DSTR routing_address;
+	uint16_t routing_port;
 
 	unsigned char option_flag2;
 
-	unsigned int bulk_copy:1;
+	unsigned int bulk_copy:1;	/**< if bulk copy should be enabled */
 	unsigned int suppress_language:1;
-	unsigned int emul_little_endian:1;
 	unsigned int gssapi_use_delegation:1;
 	unsigned int use_ntlmv2:1;
-    unsigned int use_ntlmv2_specified:1;
+	unsigned int use_ntlmv2_specified:1;
 	unsigned int use_lanman:1;
 	unsigned int mars:1;
 	unsigned int use_utf16:1;
@@ -596,6 +560,8 @@ typedef struct tds_login
 	unsigned int valid_configuration:1;
 	unsigned int check_ssl_hostname:1;
 	unsigned int readonly_intent:1;
+	unsigned int enable_tls_v1:1;
+	unsigned int server_is_valid:1;
 } TDSLOGIN;
 
 typedef struct tds_headers
@@ -752,18 +718,18 @@ struct tds_column
 
 	unsigned char *column_data;
 	void (*column_data_free)(struct tds_column *column);
-	unsigned int column_nullable:1;
-	unsigned int column_writeable:1;
-	unsigned int column_identity:1;
-	unsigned int column_key:1;
-	unsigned int column_hidden:1;
-	unsigned int column_output:1;
-	unsigned int column_timestamp:1;
+	unsigned char column_nullable:1;
+	unsigned char column_writeable:1;
+	unsigned char column_identity:1;
+	unsigned char column_key:1;
+	unsigned char column_hidden:1;
+	unsigned char column_output:1;
+	unsigned char column_timestamp:1;
 	TDS_UCHAR column_collation[5];
 
 	/* additional fields flags for compute results */
-	TDS_TINYINT column_operator;
 	TDS_SMALLINT column_operand;
+	TDS_TINYINT column_operator;
 
 	/* FIXME this is data related, not column */
 	/** size written in variable (ie: char, text, binary). -1 if NULL. */
@@ -780,6 +746,8 @@ struct tds_column
 	TDS_INT column_textpos;
 	TDS_INT column_text_sqlgetdatapos;
 	TDS_CHAR column_text_sqlputdatainfo;
+	unsigned char column_iconv_left;
+	char column_iconv_buf[9];
 
 	BCPCOLDATA *bcp_column_data;
 	/**
@@ -811,9 +779,9 @@ typedef struct tds_result_info
 
 	TDS_SMALLINT *bycolumns;
 	TDS_USMALLINT by_cols;
-	TDS_TINYINT rows_exist;
+	bool rows_exist;
 	/* TODO remove ?? used only in dblib */
-	TDS_TINYINT more_results;
+	bool more_results;
 } TDSRESULTINFO;
 
 /** values for tds->state */
@@ -975,7 +943,7 @@ typedef struct tds_cursor
 	/**
 	 * true if cursor was marker to be closed when connection is idle
 	 */
-	TDS_TINYINT defer_close;
+	bool defer_close;
 	char *query;                 	/**< SQL query */
 	/* TODO for updatable columns */
 	/* TDS_TINYINT number_upd_cols; */	/**< number of updatable columns */
@@ -1026,7 +994,7 @@ typedef struct tds_dynamic
 	/**
 	 * true if dynamic was marker to be closed when connection is idle
 	 */
-	TDS_TINYINT defer_close;
+	bool defer_close;
 	/* int dyn_state; */ /* TODO use it */
 	TDSPARAMINFO *res_info;	/**< query results */
 	/**
@@ -1065,6 +1033,7 @@ struct tds_context
 	int (*msg_handler) (const TDSCONTEXT *, TDSSOCKET *, TDSMESSAGE *);
 	int (*err_handler) (const TDSCONTEXT *, TDSSOCKET *, TDSMESSAGE *);
 	int (*int_handler) (void *);
+	bool money_use_2_digits;
 };
 
 enum TDS_ICONV_ENTRY
@@ -1076,7 +1045,7 @@ enum TDS_ICONV_ENTRY
 
 typedef struct tds_authentication
 {
-	TDS_UCHAR *packet;
+	uint8_t *packet;
 	int packet_len;
 	TDSRET (*free)(TDSCONNECTION* conn, struct tds_authentication * auth);
 	TDSRET (*handle_next)(TDSSOCKET * tds, struct tds_authentication * auth, size_t len);
@@ -1127,10 +1096,10 @@ struct tds_connection
 	TDS_UCHAR tds72_transaction[8];
 
 	TDS_CAPABILITIES capabilities;
-	unsigned int emul_little_endian:1;
 	unsigned int use_iconv:1;
 	unsigned int tds71rev1:1;
 	unsigned int pending_close:1;	/**< true is connection has pending closing (cursors or dynamic) */
+	unsigned int encrypt_single_packet:1;
 #if ENABLE_ODBC_MARS
 	unsigned int mars:1;
 
@@ -1175,6 +1144,8 @@ struct tds_socket
 	TDSCONNECTION conn[1];
 #endif
 
+	void *parent;
+
 	/** Input buffer.
 	 * Points to receiving packet buffer.
 	 * As input buffer contains just the raw packet actually this pointer
@@ -1200,8 +1171,6 @@ struct tds_socket
 	unsigned char in_flag;		/**< input buffer type */
 	unsigned char out_flag;		/**< output buffer type */
 
-	void *parent;
-
 #if ENABLE_ODBC_MARS
 	short sid;
 	tds_condition packet_cond;
@@ -1226,16 +1195,17 @@ struct tds_socket
 	TDSCOMPUTEINFO **comp_info;
 	TDSPARAMINFO *param_info;
 	TDSCURSOR *cur_cursor;		/**< cursor in use */
-	TDS_TINYINT bulk_query;		/**< true is query sent was a bulk query so we need to switch state to QUERYING */
-	TDS_TINYINT has_status; 	/**< true is ret_status is valid */
-	TDS_INT ret_status;     	/**< return status from store procedure */
-	TDS_STATE state;
+	bool bulk_query;		/**< true is query sent was a bulk query so we need to switch state to QUERYING */
+	bool has_status; 		/**< true is ret_status is valid */
+	bool in_row;			/**< true if we are getting rows */
 	volatile 
 	unsigned char in_cancel; 	/**< indicate we are waiting a cancel reply; discard tokens till acknowledge; 
 	1 mean we have to send cancel packet, 2 already sent. */
+	TDS_INT ret_status;     	/**< return status from store procedure */
+	TDS_STATE state;
 
-	TDS_INT8 rows_affected;		/**< rows updated/deleted/inserted/selected, TDS_NO_COUNT if not valid */
 	TDS_INT query_timeout;
+	TDS_INT8 rows_affected;		/**< rows updated/deleted/inserted/selected, TDS_NO_COUNT if not valid */
 
 	TDSDYNAMIC *cur_dyn;		/**< dynamic structure in use */
 
@@ -1259,8 +1229,8 @@ struct tds_socket
 /* config.c */
 const TDS_COMPILETIME_SETTINGS *tds_get_compiletime_settings(void);
 typedef void (*TDSCONFPARSE) (const char *option, const char *value, void *param);
-int tds_read_conf_section(FILE * in, const char *section, TDSCONFPARSE tds_conf_parse, void *parse_param);
-int tds_read_conf_file(TDSLOGIN * login, const char *server);
+bool tds_read_conf_section(FILE * in, const char *section, TDSCONFPARSE tds_conf_parse, void *parse_param);
+bool tds_read_conf_file(TDSLOGIN * login, const char *server);
 void tds_parse_conf_section(const char *option, const char *value, void *param);
 TDSLOGIN *tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale);
 void tds_fix_login(TDSLOGIN* login);
@@ -1268,6 +1238,7 @@ TDS_USMALLINT * tds_config_verstr(const char *tdsver, TDSLOGIN* login);
 struct addrinfo *tds_lookup_host(const char *servername);
 TDSRET tds_lookup_host_set(const char *servername, struct addrinfo **addr);
 const char *tds_addrinfo2str(struct addrinfo *addr, char *name, int namemax);
+char *tds_get_home_file(const char *file);
 
 TDSRET tds_set_interfaces_file_loc(const char *interfloc);
 extern const char STD_DATETIME_FMT[];
@@ -1288,18 +1259,10 @@ TDS_SERVER_TYPE tds_get_cardinal_type(TDS_SERVER_TYPE datatype, int usertype);
 TDSRET tds_iconv_open(TDSCONNECTION * conn, const char *charset, int use_utf16);
 void tds_iconv_close(TDSCONNECTION * conn);
 void tds_srv_charset_changed(TDSCONNECTION * conn, const char *charset);
-void tds7_srv_charset_changed(TDSCONNECTION * conn, int sql_collate, int lcid);
+void tds7_srv_charset_changed(TDSCONNECTION * conn, TDS_UCHAR collate[5]);
 int tds_iconv_alloc(TDSCONNECTION * conn);
 void tds_iconv_free(TDSCONNECTION * conn);
 TDSICONV *tds_iconv_from_collate(TDSCONNECTION * conn, TDS_UCHAR collate[5]);
-
-
-/* threadsafe.c */
-char *tds_timestamp_str(char *str, int maxlen);
-struct tm *tds_localtime_r(const time_t *timep, struct tm *result);
-struct hostent *tds_gethostbyname_r(const char *servername, struct hostent *result, char *buffer, int buflen, int *h_errnop);
-int tds_getservice(const char *name);
-char *tds_get_homedir(void);
 
 
 /* mem.c */
@@ -1360,7 +1323,7 @@ void tds_deinit_bcpinfo(TDSBCPINFO *bcpinfo);
 void tds_set_packet(TDSLOGIN * tds_login, int packet_size);
 void tds_set_port(TDSLOGIN * tds_login, int port);
 bool tds_set_passwd(TDSLOGIN * tds_login, const char *password) TDS_WUR;
-void tds_set_bulk(TDSLOGIN * tds_login, TDS_TINYINT enabled);
+void tds_set_bulk(TDSLOGIN * tds_login, bool enabled);
 bool tds_set_user(TDSLOGIN * tds_login, const char *username) TDS_WUR;
 bool tds_set_app(TDSLOGIN * tds_login, const char *application) TDS_WUR;
 bool tds_set_host(TDSLOGIN * tds_login, const char *hostname) TDS_WUR;
@@ -1472,7 +1435,7 @@ TDS_UINT8 tds_get_uint8(TDSSOCKET * tds);
 #define tds_get_int8(tds) ((TDS_INT8) tds_get_uint8(tds))
 size_t tds_get_string(TDSSOCKET * tds, size_t string_len, char *dest, size_t dest_size);
 TDSRET tds_get_char_data(TDSSOCKET * tds, char *dest, size_t wire_size, TDSCOLUMN * curcol);
-void *tds_get_n(TDSSOCKET * tds, /*@out@*/ /*@null@*/ void *dest, size_t n);
+bool tds_get_n(TDSSOCKET * tds, /*@out@*/ /*@null@*/ void *dest, size_t n);
 int tds_get_size_by_type(TDS_SERVER_TYPE servertype);
 DSTR* tds_dstr_get(TDSSOCKET * tds, DSTR * s, size_t len);
 
@@ -1481,9 +1444,7 @@ DSTR* tds_dstr_get(TDSSOCKET * tds, DSTR * s, size_t len);
 int tdserror (const TDSCONTEXT * tds_ctx, TDSSOCKET * tds, int msgno, int errnum);
 TDS_STATE tds_set_state(TDSSOCKET * tds, TDS_STATE state);
 void tds_swap_bytes(void *buf, int bytes);
-#ifdef ENABLE_DEVELOPING
 unsigned int tds_gettime_ms(void);
-#endif
 char *tds_strndup(const void *s, TDS_INTPTR len);
 
 
@@ -1529,9 +1490,7 @@ int tds_connection_write(TDSSOCKET *tds, const unsigned char *buf, int buflen, i
 #define TDSSELREAD  POLLIN
 #define TDSSELWRITE POLLOUT
 int tds_select(TDSSOCKET * tds, unsigned tds_sel, int timeout_seconds);
-#if ENABLE_ODBC_MARS
 void tds_connection_close(TDSCONNECTION *conn);
-#endif
 int tds_goodread(TDSSOCKET * tds, unsigned char *buf, int buflen);
 int tds_goodwrite(TDSSOCKET * tds, const unsigned char *buffer, size_t buflen);
 void tds_socket_flush(TDS_SYS_SOCKET sock);
@@ -1553,11 +1512,6 @@ int tds_append_cancel(TDSSOCKET *tds);
 TDSRET tds_append_fin(TDSSOCKET *tds);
 #else
 int tds_put_cancel(TDSSOCKET * tds);
-static inline
-void tds_connection_close(TDSCONNECTION *connection)
-{
-	tds_close_socket((TDSSOCKET* ) connection);
-}
 #endif
 
 
@@ -1567,7 +1521,7 @@ TDSRET tds_vstrbuild(char *buffer, int buflen, int *resultlen, const char *text,
 
 
 /* numeric.c */
-char *tds_money_to_string(const TDS_MONEY * money, char *s);
+char *tds_money_to_string(const TDS_MONEY * money, char *s, bool use_2_digits);
 TDS_INT tds_numeric_to_string(const TDS_NUMERIC * numeric, char *s);
 TDS_INT tds_numeric_change_prec_scale(TDS_NUMERIC * numeric, unsigned char new_prec, unsigned char new_scale);
 

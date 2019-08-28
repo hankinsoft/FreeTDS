@@ -24,7 +24,7 @@
  * Its purpose is to allow ASCII clients to communicate with Microsoft servers
  * that encode their metadata in Unicode (UTF-16).
  *
- * It supports ISO-8859-1, ASCII, UTF-16, UCS-4 and UTF-8
+ * It supports ISO-8859-1, ASCII, CP1252, UTF-16, UCS-4 and UTF-8
  */
 
 #include <config.h>
@@ -44,6 +44,9 @@
 #include <freetds/tds.h>
 #include <freetds/bytes.h>
 #include <freetds/iconv.h>
+#include <freetds/utils/bjoern-utf8.h>
+
+#include "iconv_charsets.h"
 
 /**
  * \addtogroup conv
@@ -55,30 +58,7 @@ enum ICONV_CD_VALUE
 	Like_to_Like = 0x100
 };
 
-typedef TDS_UINT ICONV_CHAR;
-
-static const unsigned char utf8_lengths[256] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 0, 0,
-};
-
-static const unsigned char utf8_masks[7] = {
-	0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01
-};
+typedef uint32_t ICONV_CHAR;
 
 /*
  * Return values for get_*:
@@ -94,21 +74,19 @@ static const unsigned char utf8_masks[7] = {
 static int
 get_utf8(const unsigned char *p, size_t len, ICONV_CHAR *out)
 {
-	ICONV_CHAR uc;
-	size_t l;
+	uint32_t uc, state = 0;
+	size_t l = 1;
 
-	l = utf8_lengths[p[0]];
-	if (TDS_UNLIKELY(l == 0))
-		return -EILSEQ;
-	if (TDS_UNLIKELY(len < l))
-		return -EINVAL;
-
-	len = l;
-	uc = *p++ & utf8_masks[l];
-	while(--l)
-		uc = (uc << 6) | (*p++ & 0x3f);
-	*out = uc;
-	return len;
+	do {
+		switch (decode_utf8(&state, &uc, *p++)) {
+		case 0:
+			*out = uc;
+			return l;
+		case UTF8_REJECT:
+			return -EILSEQ;
+		}
+	} while (l++ < len);
+	return -EINVAL;
 }
 
 static int
@@ -202,10 +180,10 @@ get_utf16le(const unsigned char *p, size_t len, ICONV_CHAR *out)
 		if (len < 4)
 			return -EINVAL;
 		c2 = TDS_GET_A2LE(p+2);
-		if ((c2 & 0xfc00) != 0xdc00)
-			return -EILSEQ;
-		*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
-		return 4;
+		if ((c2 & 0xfc00) == 0xdc00) {
+			*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
+			return 4;
+		}
 	}
 	*out = c;
 	return 2;
@@ -214,18 +192,17 @@ get_utf16le(const unsigned char *p, size_t len, ICONV_CHAR *out)
 static int
 put_utf16le(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 {
-	if (c >= 0x110000u)
-		return -EILSEQ;
 	if (c < 0x10000u) {
 		if (buf_len < 2)
 			return -E2BIG;
 		TDS_PUT_A2LE(buf, c);
 		return 2;
 	}
+	if (TDS_UNLIKELY(c >= 0x110000u))
+		return -EILSEQ;
 	if (buf_len < 4)
 		return -E2BIG;
-	c -= 0x10000u;
-	TDS_PUT_A2LE(buf,   0xd800 + (c >> 10));
+	TDS_PUT_A2LE(buf,   0xd7c0 + (c >> 10));
 	TDS_PUT_A2LE(buf+2, 0xdc00 + (c & 0x3ffu));
 	return 4;
 }
@@ -242,10 +219,10 @@ get_utf16be(const unsigned char *p, size_t len, ICONV_CHAR *out)
 		if (len < 4)
 			return -EINVAL;
 		c2 = TDS_GET_A2BE(p+2);
-		if ((c2 & 0xfc00) != 0xdc00)
-			return -EILSEQ;
-		*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
-		return 4;
+		if ((c2 & 0xfc00) == 0xdc00) {
+			*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
+			return 4;
+		}
 	}
 	*out = c;
 	return 2;
@@ -254,18 +231,17 @@ get_utf16be(const unsigned char *p, size_t len, ICONV_CHAR *out)
 static int
 put_utf16be(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 {
-	if (c >= 0x110000u)
-		return -EILSEQ;
 	if (c < 0x10000u) {
 		if (buf_len < 2)
 			return -E2BIG;
 		TDS_PUT_A2BE(buf, c);
 		return 2;
 	}
+	if (TDS_UNLIKELY(c >= 0x110000u))
+		return -EILSEQ;
 	if (buf_len < 4)
 		return -E2BIG;
-	c -= 0x10000u;
-	TDS_PUT_A2BE(buf,   0xd800 + (c >> 10));
+	TDS_PUT_A2BE(buf,   0xd7c0 + (c >> 10));
 	TDS_PUT_A2BE(buf+2, 0xdc00 + (c & 0x3ffu));
 	return 4;
 }
@@ -309,6 +285,35 @@ put_ascii(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 }
 
 static int
+get_cp1252(const unsigned char *p, size_t len, ICONV_CHAR *out)
+{
+	if (*p >= 0x80 && *p < 0xa0)
+		*out = cp1252_0080_00a0[*p - 0x80];
+	else
+		*out = *p;
+	return 1;
+}
+
+static int
+put_cp1252(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
+{
+	if (buf_len < 1)
+		return -E2BIG;
+
+	if (c >= 0x100 || ((c&~0x1fu) == 0x80 && cp1252_0080_00a0[c - 0x80] != c - 0x80)) {
+		switch (c) {
+#define CP1252(i,o) case o: c = i; break;
+		CP1252_ALL
+#undef CP1252
+		default:
+			return -EILSEQ;
+		}
+	}
+	*buf = c;
+	return 1;
+}
+
+static int
 get_err(const unsigned char *p, size_t len, ICONV_CHAR *out)
 {
 	return -EILSEQ;
@@ -323,11 +328,13 @@ put_err(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 typedef int (*iconv_get_t)(const unsigned char *p, size_t len,     ICONV_CHAR *out);
 typedef int (*iconv_put_t)(unsigned char *buf,     size_t buf_len, ICONV_CHAR c);
 
-static const iconv_get_t iconv_gets[8] = {
-	get_iso1, get_ascii, get_utf16le, get_utf16be, get_ucs4le, get_ucs4be, get_utf8, get_err
+static const iconv_get_t iconv_gets[16] = {
+	get_iso1, get_ascii, get_utf16le, get_utf16be, get_ucs4le, get_ucs4be, get_utf8, get_cp1252,
+	get_err, get_err, get_err, get_err, get_err, get_err, get_err, get_err,
 };
-static const iconv_put_t iconv_puts[8] = {
-	put_iso1, put_ascii, put_utf16le, put_utf16be, put_ucs4le, put_ucs4be, put_utf8, put_err
+static const iconv_put_t iconv_puts[16] = {
+	put_iso1, put_ascii, put_utf16le, put_utf16be, put_ucs4le, put_ucs4be, put_utf8, put_cp1252,
+	put_err, put_err, put_err, put_err, put_err, put_err, put_err, put_err,
 };
 
 /** 
@@ -367,6 +374,8 @@ tds_sys_iconv_open (const char* tocode, const char* fromcode)
 			encoding = 5;
 		else if (strcmp(enc_name, "UTF-8") == 0)
 			encoding = 6;
+		else if (strcmp(enc_name, "CP1252") == 0)
+			encoding = 7;
 		else {
 			errno = EINVAL;
 			return (iconv_t)(-1);
@@ -383,7 +392,7 @@ tds_sys_iconv_open (const char* tocode, const char* fromcode)
 		fromto = Like_to_Like;
 	}
 
-	return (iconv_t) (TDS_INTPTR) fromto;
+	return (iconv_t) (intptr_t) fromto;
 } 
 
 int 
@@ -401,7 +410,7 @@ tds_sys_iconv (iconv_t cd, const char* * inbuf, size_t *inbytesleft, char* * out
 	int local_errno;
 
 #undef CD
-#define CD ((int) (TDS_INTPTR) cd)
+#define CD ((int) (intptr_t) cd)
 
 	/* iconv defines valid semantics for NULL inputs, but we don't support them. */
 	if (!inbuf || !*inbuf || !inbytesleft || !outbuf || !*outbuf || !outbytesleft)
@@ -429,11 +438,11 @@ tds_sys_iconv (iconv_t cd, const char* * inbuf, size_t *inbytesleft, char* * out
 		ol -= copybytes;
 		ib += copybytes;
 		il -= copybytes;
-	} else if (CD & ~0x77) {
+	} else if (CD & ~0xff) {
 		local_errno = EINVAL;
 	} else {
-		iconv_get_t get_func = iconv_gets[(CD>>4) & 7];
-		iconv_put_t put_func = iconv_puts[ CD     & 7];
+		iconv_get_t get_func = iconv_gets[(CD>>4) & 15];
+		iconv_put_t put_func = iconv_puts[ CD     & 15];
 
 		while (il) {
 			ICONV_CHAR out_c;

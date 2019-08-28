@@ -59,10 +59,14 @@
 
 #ifdef ENABLE_KRB5
 
+#ifdef __APPLE__
+#define KERBEROS_APPLE_DEPRECATED(x)
+#define GSSKRB_APPLE_DEPRECATED(x)
+#endif
 #include <gssapi/gssapi_krb5.h>
 
 #include <freetds/tds.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include "replacements.h"
 
 /**
@@ -151,7 +155,6 @@ tds_gss_handle_next(TDSSOCKET * tds, struct tds_authentication * auth, size_t le
 /**
  * Build a GSSAPI packet to send to server
  * @param tds     A pointer to the TDSSOCKET structure managing a client/server operation.
- * @param packet  GSSAPI packet build from function
  * @return size of packet
  */
 TDSAUTHENTICATION * 
@@ -318,7 +321,7 @@ tds_gss_continue(TDSSOCKET * tds, struct tds_gss_auth *auth, gss_buffer_desc *to
 					&pmech,	
 					&send_tok, &ret_flags, NULL);	/* ignore time_rec */
 
-	tdsdump_log(TDS_DBG_NETWORK, "gss_init_sec_context: actual mechanism at 0x%p\n", pmech);
+	tdsdump_log(TDS_DBG_NETWORK, "gss_init_sec_context: actual mechanism at %p\n", pmech);
 	if (pmech && pmech->elements) {
 		tdsdump_dump_buf(TDS_DBG_NETWORK, "actual mechanism", pmech->elements, pmech->length);
 	}
@@ -378,13 +381,12 @@ tds_gss_continue(TDSSOCKET * tds, struct tds_gss_auth *auth, gss_buffer_desc *to
 		return TDS_FAIL;
 	}
 
-	auth->tds_auth.packet = (TDS_UCHAR *) send_tok.value;
+	auth->tds_auth.packet = (uint8_t *) send_tok.value;
 	auth->tds_auth.packet_len = send_tok.length;
 
 	return TDS_SUCCESS;
 }
 
-#endif
-
 /** @} */
 
+#endif

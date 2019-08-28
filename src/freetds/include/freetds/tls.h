@@ -36,6 +36,7 @@
 #elif defined(HAVE_OPENSSL)
 #  include <openssl/ssl.h>
 #  include <openssl/x509v3.h>
+#  include <openssl/err.h>
 #endif
 
 #include <freetds/pushvis.h>
@@ -64,6 +65,11 @@ tds_ssl_write(TDSCONNECTION *conn, const unsigned char *buf, int buflen)
 	return gnutls_record_send((gnutls_session_t) conn->tls_session, buf, buflen);
 }
 #  else
+
+/* compatibility for LibreSSL 2.7  */
+#ifdef LIBRESSL_VERSION_NUMBER
+#define TLS_ST_OK SSL_ST_OK
+#endif
 
 static inline int
 tds_ssl_pending(TDSCONNECTION *conn)

@@ -9,9 +9,6 @@
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 
-static char software_version[] = "$Id: null.c,v 1.9 2010-10-26 08:12:48 freddy77 Exp $";
-static void *no_unused_var_warn[] = { software_version, no_unused_var_warn };
-
 #ifndef DBNTWIN32
 
 static DBPROCESS *dbproc = NULL;
@@ -45,21 +42,21 @@ test0(int n, int expected)
 {
 	static const char sql[] = "select c from #null where n = %d";
 
-	fprintf(stdout, sql, n);
-	fprintf(stdout, " ... ");
+	printf(sql, n);
+	printf(" ... ");
 	
 	dbfcmd(dbproc, sql, n);
 
 	dbsqlexec(dbproc);
 
 	if (dbresults(dbproc) != SUCCEED || dbnextrow(dbproc) != REG_ROW) {
-		fprintf(stdout, "\nExpected a row.\n");
+		printf("\nExpected a row.\n");
 		failed = 1;
 		dbcancel(dbproc);
 		return;
 	}
 
-	fprintf(stdout, "got %p and length %d\n", dbdata(dbproc, 1), dbdatlen(dbproc, 1));
+	printf("got %p and length %d\n", dbdata(dbproc, 1), dbdatlen(dbproc, 1));
 
 	if (dbdatlen(dbproc, 1) != (expected < 0? 0 : expected)) {
 		fprintf(stderr, "Error: n=%d: dbdatlen returned %d, expected %d\n", 
@@ -119,7 +116,7 @@ test(const char *type, int give_err)
 		dbcancel(dbproc);
 		if (!give_err)
 			return;
-		fprintf(stdout, "Was expecting a result set.\n");
+		printf("Was expecting a result set.\n");
 		failed = 1;
 		return;
 	}
@@ -144,21 +141,21 @@ main(int argc, char **argv)
 
 	read_login_info(argc, argv);
 
-	fprintf(stdout, "Starting %s\n", argv[0]);
+	printf("Starting %s\n", argv[0]);
 
 	dbinit();
 
 	dberrhandle(syb_err_handler);
 	dbmsghandle(syb_msg_handler);
 
-	fprintf(stdout, "About to logon\n");
+	printf("About to logon\n");
 
 	login = dblogin();
 	DBSETLPWD(login, PASSWORD);
 	DBSETLUSER(login, USER);
 	DBSETLAPP(login, "thread");
 
-	fprintf(stdout, "About to open \"%s\"\n", SERVER);
+	printf("About to open \"%s\"\n", SERVER);
 
 	dbproc = dbopen(login, SERVER);
 	if (!dbproc) {

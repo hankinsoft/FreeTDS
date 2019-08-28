@@ -72,7 +72,8 @@
 
 #include <freetds/tds.h>
 #include <freetds/configs.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
+#include <freetds/utils.h>
 #include "replacements.h"
 
 static int tds_config_login(TDSLOGIN * connection, TDSLOGIN * login);
@@ -80,9 +81,9 @@ static int tds_config_env_tdsdump(TDSLOGIN * login);
 static void tds_config_env_tdsver(TDSLOGIN * login);
 static void tds_config_env_tdsport(TDSLOGIN * login);
 static int tds_config_env_tdshost(TDSLOGIN * login);
-static int tds_read_conf_sections(FILE * in, const char *server, TDSLOGIN * login);
+static bool tds_read_conf_sections(FILE * in, const char *server, TDSLOGIN * login);
 static int tds_read_interfaces(const char *server, TDSLOGIN * login);
-static int parse_server_name_for_port(TDSLOGIN * connection, TDSLOGIN * login);
+static int parse_server_name_for_port(TDSLOGIN * connection, TDSLOGIN * login, bool update_server);
 static int tds_lookup_port(const char *portname);
 static void tds_config_encryption(const char * value, TDSLOGIN * login);
 
@@ -100,7 +101,7 @@ static const char interfaces_path[] = "/etc/freetds";
 #else
        const char STD_DATETIME_FMT[] = "%b %d %Y %I:%M%p"; /* msvcr80.dll does not support %e */
 static const char pid_config_logpath[] = "c:\\tdsconfig.log.%d";
-static const char freetds_conf [] = "%s\\freetds.conf";
+static const char freetds_conf[] = "%s\\freetds.conf";
 static const char location[] = "(from $FREETDS)";
 static const char pid_logpath[] = "c:\\freetds.log.%d";
 static const char interfaces_path[] = "c:\\";
@@ -140,7 +141,8 @@ tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale)
 	char *s;
 	char *path;
 	pid_t pid;
-	int opened = 0, found;
+	int opened = 0;
+	bool found;
 	struct addrinfo *addrs;
 
 	/* allocate a new structure with hard coded and build-time defaults */
@@ -156,7 +158,7 @@ tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale)
 			opened = tdsdump_open(s);
 		} else {
 			pid = getpid();
-			if (asprintf(&path, pid_config_logpath, pid) >= 0) {
+			if (asprintf(&path, pid_config_logpath, (int) pid) >= 0) {
 				if (*path) {
 					opened = tdsdump_open(path);
 				}
@@ -172,18 +174,21 @@ tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale)
 	tdsdump_log(TDS_DBG_INFO1, "Attempting to read conf files.\n");
 	found = tds_read_conf_file(connection, tds_dstr_cstr(&login->server_name));
 	if (!found) {
-		if (parse_server_name_for_port(connection, login)) {
+		if (parse_server_name_for_port(connection, login, true)) {
 
 			found = tds_read_conf_file(connection, tds_dstr_cstr(&connection->server_name));
 			/* do it again to really override what found in freetds.conf */
-			if (found) {
-				parse_server_name_for_port(connection, login);
-			} else if (TDS_SUCCEED(tds_lookup_host_set(tds_dstr_cstr(&connection->server_name), &connection->ip_addrs))) {
+			parse_server_name_for_port(connection, login, false);
+			if (!found && TDS_SUCCEED(tds_lookup_host_set(tds_dstr_cstr(&connection->server_name), &connection->ip_addrs))) {
 				if (!tds_dstr_dup(&connection->server_host_name, &connection->server_name)) {
 					tds_free_login(connection);
 					return NULL;
 				}
-				found = 1;
+				found = true;
+			}
+			if (!tds_dstr_dup(&login->server_name, &connection->server_name)) {
+				tds_free_login(connection);
+				return NULL;
 			}
 		}
 	}
@@ -246,7 +251,6 @@ tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale)
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "dump_file", tds_dstr_cstr(&connection->dump_file));
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %x\n", "debug_flags", connection->debug_flags);
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %d\n", "text_size", connection->text_size);
-		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %d\n", "emul_little_endian", connection->emul_little_endian);
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "server_realm_name", tds_dstr_cstr(&connection->server_realm_name));
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "server_spn", tds_dstr_cstr(&connection->server_spn));
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "cafile", tds_dstr_cstr(&connection->cafile));
@@ -254,6 +258,9 @@ tds_read_config_info(TDSSOCKET * tds, TDSLOGIN * login, TDSLOCALE * locale)
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %d\n", "check_ssl_hostname", connection->check_ssl_hostname);
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "db_filename", tds_dstr_cstr(&connection->db_filename));
 		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %d\n", "readonly_intent", connection->readonly_intent);
+#ifdef HAVE_OPENSSL
+		tdsdump_log(TDS_DBG_INFO1, "\t%20s = %s\n", "openssl_ciphers", tds_dstr_cstr(&connection->openssl_ciphers));
+#endif
 
 		tdsdump_close();
 	}
@@ -284,10 +291,10 @@ tds_fix_login(TDSLOGIN * login)
 	tds_config_env_tdshost(login);
 }
 
-static int
+static bool
 tds_try_conf_file(const char *path, const char *how, const char *server, TDSLOGIN * login)
 {
-	int found = 0;
+	bool found = false;
 	FILE *in;
 
 	if ((in = fopen(path, "r")) == NULL) {
@@ -314,7 +321,7 @@ tds_try_conf_file(const char *path, const char *how, const char *server, TDSLOGI
  * Return filename from HOME directory
  * @return allocated string or NULL if error
  */
-static char *
+char *
 tds_get_home_file(const char *file)
 {
 	char *home, *path;
@@ -335,12 +342,12 @@ tds_get_home_file(const char *file)
  * @param server       section of file configuration that hold 
  *                     configuration for a server
  */
-int
+bool
 tds_read_conf_file(TDSLOGIN * login, const char *server)
 {
 	char *path = NULL;
 	char *eptr = NULL;
-	int found = 0;
+	bool found = false;
 
 	if (interf_file) {
 		found = tds_try_conf_file(interf_file, "set programmatically", server, login);
@@ -386,28 +393,28 @@ tds_read_conf_file(TDSLOGIN * login, const char *server)
 	return found;
 }
 
-static int
+static bool
 tds_read_conf_sections(FILE * in, const char *server, TDSLOGIN * login)
 {
 	DSTR default_instance = DSTR_INITIALIZER;
 	int default_port;
 
-	int found;
+	bool found;
 
 	tds_read_conf_section(in, "global", tds_parse_conf_section, login);
 
 	if (!server[0])
-		return 0;
+		return false;
 	rewind(in);
 
 	if (!tds_dstr_dup(&default_instance, &login->instance_name))
-		return 0;
+		return false;
 	default_port = login->port;
 
 	found = tds_read_conf_section(in, server, tds_parse_conf_section, login);
 	if (!login->valid_configuration) {
 		tds_dstr_free(&default_instance);
-		return 0;
+		return false;
 	}
 
 	/* 
@@ -492,7 +499,7 @@ tds_config_encryption(const char * value, TDSLOGIN * login)
  * @param tds_conf_parse callback that receive every entry in section
  * @param param          parameter to pass to callback function
  */
-int
+bool
 tds_read_conf_section(FILE * in, const char *section, TDSCONFPARSE tds_conf_parse, void *param)
 {
 	char line[256], *value;
@@ -501,7 +508,7 @@ tds_read_conf_section(FILE * in, const char *section, TDSCONFPARSE tds_conf_pars
 	char p;
 	int i;
 	int insection = 0;
-	int found = 0;
+	bool found = false;
 
 	tdsdump_log(TDS_DBG_INFO1, "Looking for section %s.\n", section);
 	while (fgets(line, sizeof(line), in)) {
@@ -567,7 +574,7 @@ tds_read_conf_section(FILE * in, const char *section, TDSCONFPARSE tds_conf_pars
 			if (!strcasecmp(section, &option[1])) {
 				tdsdump_log(TDS_DBG_INFO1, "Got a match.\n");
 				insection = 1;
-				found = 1;
+				found = true;
 			} else {
 				insection = 0;
 			}
@@ -634,7 +641,8 @@ tds_parse_conf_section(const char *option, const char *value, void *param)
 		if (atoi(value))
 			login->port = atoi(value);
 	} else if (!strcmp(option, TDS_STR_EMUL_LE)) {
-		login->emul_little_endian = tds_config_boolean(option, value, login);
+		/* obsolete, ignore */
+		tds_config_boolean(option, value, login);
 	} else if (!strcmp(option, TDS_STR_TEXTSZ)) {
 		if (atoi(value))
 			login->text_size = atoi(value);
@@ -658,6 +666,7 @@ tds_parse_conf_section(const char *option, const char *value, void *param)
 		s = tds_dstr_copy(&login->server_name, value);
 	} else if (!strcmp(option, TDS_STR_USENTLMV2)) {
 		login->use_ntlmv2 = tds_config_boolean(option, value, login);
+		login->use_ntlmv2_specified = 1;
 	} else if (!strcmp(option, TDS_STR_USELANMAN)) {
 		login->use_lanman = tds_config_boolean(option, value, login);
 	} else if (!strcmp(option, TDS_STR_REALM)) {
@@ -677,6 +686,10 @@ tds_parse_conf_section(const char *option, const char *value, void *param)
 	} else if (!strcmp(option, TDS_STR_READONLY_INTENT)) {
 		login->readonly_intent = tds_config_boolean(option, value, login);
 		tdsdump_log(TDS_DBG_FUNC, "Setting ReadOnly Intent to '%s'.\n", value);
+	} else if (!strcmp(option, TLS_STR_OPENSSL_CIPHERS)) {
+		s = tds_dstr_copy(&login->openssl_ciphers, value);
+	} else if (!strcmp(option, TDS_STR_ENABLE_TLS_V1)) {
+		login->enable_tls_v1 = tds_config_boolean(option, value, login);
 	} else {
 		tdsdump_log(TDS_DBG_INFO1, "UNRECOGNIZED option '%s' ... ignoring.\n", option);
 	}
@@ -737,8 +750,8 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 	if (login->suppress_language) {
 		connection->suppress_language = 1;
 	}
-	if (login->bulk_copy) {
-		connection->bulk_copy = 1;
+	if (!login->bulk_copy) {
+		connection->bulk_copy = 0;
 	}
 	if (login->block_size) {
 		connection->block_size = login->block_size;
@@ -758,18 +771,21 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 		res = tds_dstr_dup(&connection->db_filename, &login->db_filename);
 	}
 
+	if (res && !tds_dstr_isempty(&login->openssl_ciphers)) {
+		res = tds_dstr_dup(&connection->openssl_ciphers, &login->openssl_ciphers);
+	}
+
 	/* copy other info not present in configuration file */
 	connection->capabilities = login->capabilities;
 
 	if (login->readonly_intent)
 		connection->readonly_intent = login->readonly_intent;
-
 	connection->use_new_password = login->use_new_password;
 
-    if(login->use_ntlmv2_specified) {
-        connection->use_ntlmv2_specified = login->use_ntlmv2_specified;
-        connection->use_ntlmv2 = login->use_ntlmv2;
-    }
+	if (login->use_ntlmv2_specified) {
+		connection->use_ntlmv2_specified = login->use_ntlmv2_specified;
+		connection->use_ntlmv2 = login->use_ntlmv2;
+	}
 
 	if (res)
 		res = tds_dstr_dup(&connection->new_password, &login->new_password);
@@ -780,27 +796,27 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 static int
 tds_config_env_tdsdump(TDSLOGIN * login)
 {
-	char *s;
-	char *path;
-	pid_t pid = 0;
+	char *s = getenv("TDSDUMP");
+	if (!s)
+		return 1;
 
-	if ((s = getenv("TDSDUMP"))) {
-		if (!strlen(s)) {
-			pid = getpid();
-			if (asprintf(&path, pid_logpath, pid) < 0)
-				return 0;
-			if (!tds_dstr_set(&login->dump_file, path)) {
-				free(path);
-				return 0;
-			}
-		} else {
-			if (!tds_dstr_copy(&login->dump_file, s))
-				return 0;
+	if (!strlen(s)) {
+		char *path;
+		pid_t pid = getpid();
+		if (asprintf(&path, pid_logpath, (int) pid) < 0)
+			return 0;
+		if (!tds_dstr_set(&login->dump_file, path)) {
+			free(path);
+			return 0;
 		}
-		tdsdump_log(TDS_DBG_INFO1, "Setting 'dump_file' to '%s' from $TDSDUMP.\n", tds_dstr_cstr(&login->dump_file));
+	} else {
+		if (!tds_dstr_copy(&login->dump_file, s))
+			return 0;
 	}
+	tdsdump_log(TDS_DBG_INFO1, "Setting 'dump_file' to '%s' from $TDSDUMP.\n", tds_dstr_cstr(&login->dump_file));
 	return 1;
 }
+
 static void
 tds_config_env_tdsport(TDSLOGIN * login)
 {
@@ -1261,7 +1277,7 @@ tds_read_interfaces(const char *server, TDSLOGIN * login)
  * \return 1 when found, else 0
  */
 static int
-parse_server_name_for_port(TDSLOGIN * connection, TDSLOGIN * login)
+parse_server_name_for_port(TDSLOGIN * connection, TDSLOGIN * login, bool update_server)
 {
 	const char *pSep;
 	const char *server;
@@ -1293,7 +1309,7 @@ parse_server_name_for_port(TDSLOGIN * connection, TDSLOGIN * login)
 		connection->port = 0;
 	}
 
-	if (!tds_dstr_copyn(&connection->server_name, server, pSep - server))
+	if (!update_server || !tds_dstr_copyn(&connection->server_name, server, pSep - server))
 		return 0;
 
 	return 1;
@@ -1331,14 +1347,8 @@ tds_get_compiletime_settings(void)
 #		else
 			, 0
 #		endif
-#		ifdef TDS42
-			, "4.2"
-#		elif TDS46
-			, "4.6"
-#		elif TDS50
+#		if TDS50
 			, "5.0"
-#		elif TDS70
-			, "7.0"
 #		elif TDS71
 			, "7.1"
 #		elif TDS72

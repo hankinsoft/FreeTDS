@@ -1,6 +1,5 @@
 /*
- * This file produced from ./encodings.pl on Sun Jun 19 09:01:10 2016
- * $Id: encodings.pl,v 1.12 2010-11-26 19:46:55 freddy77 Exp $
+ * This file produced from ./encodings.pl on Wed Aug 28 15:22:09 2019
  */
 #ifdef TDS_ICONV_ENCODING_TABLES
 
@@ -91,35 +90,27 @@ static const TDS_ENCODING canonic_charsets[] = {
 	{            "ROMAN8",	1, 1,  83},	/*  83 */
 	{              "SJIS",	1, 2,  84},	/*  84 */
 	{              "TCVN",	1, 1,  85},	/*  85 */
-	{             "UCS-2",	2, 2,  86},	/*  86 */
-	{    "UCS-2-INTERNAL",	2, 2,  87},	/*  87 */
-	{     "UCS-2-SWAPPED",	2, 2,  88},	/*  88 */
-	{             "UCS-4",	4, 4,  89},	/*  89 */
-	{    "UCS-4-INTERNAL",	4, 4,  90},	/*  90 */
-	{     "UCS-4-SWAPPED",	4, 4,  91},	/*  91 */
-	{           "UCS-4BE",	4, 4,  92},	/*  92 */
-	{           "UCS-4LE",	4, 4,  93},	/*  93 */
-	{          "US-ASCII",	1, 1,  94},	/*  94 */
-	{            "UTF-16",	2, 4,  95},	/*  95 */
-	{          "UTF-16BE",	2, 4,  96},	/*  96 */
-	{          "UTF-16LE",	2, 4,  97},	/*  97 */
-	{            "UTF-32",	4, 4,  98},	/*  98 */
-	{          "UTF-32BE",	4, 4,  99},	/*  99 */
-	{          "UTF-32LE",	4, 4, 100},	/* 100 */
-	{             "UTF-7",	1, 4, 101},	/* 101 */
-	{            "VISCII",	1, 1, 102},	/* 102 */
+	{           "UCS-4BE",	4, 4,  86},	/*  86 */
+	{           "UCS-4LE",	4, 4,  87},	/*  87 */
+	{          "US-ASCII",	1, 1,  88},	/*  88 */
+	{          "UTF-16BE",	2, 4,  89},	/*  89 */
+	{          "UTF-16LE",	2, 4,  90},	/*  90 */
+	{          "UTF-32BE",	4, 4,  91},	/*  91 */
+	{          "UTF-32LE",	4, 4,  92},	/*  92 */
+	{             "UTF-7",	1, 4,  93},	/*  93 */
+	{            "VISCII",	1, 1,  94},	/*  94 */
 };
 
 static const CHARACTER_SET_ALIAS iconv_aliases[] = {
-	{                    "646",   94 },
+	{                    "646",   88 },
 	{                    "850",   24 },
 	{                    "862",   25 },
 	{                    "866",   26 },
-	{         "ANSI_X3.4-1968",   94 },
-	{         "ANSI_X3.4-1986",   94 },
+	{         "ANSI_X3.4-1968",   88 },
+	{         "ANSI_X3.4-1986",   88 },
 	{                 "ARABIC",   54 },
 	{              "ARMSCII-8",    4 },
-	{                  "ASCII",   94 },
+	{                  "ASCII",   88 },
 	{               "ASMO-708",   54 },
 	{                  "BIG-5",    5 },
 	{               "BIG-FIVE",    5 },
@@ -144,7 +135,7 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{                 "CP1257",   20 },
 	{                 "CP1258",   21 },
 	{                 "CP1361",   22 },
-	{                  "CP367",   94 },
+	{                  "CP367",   88 },
 	{                  "CP437",   23 },
 	{                  "CP819",    0 },
 	{                  "CP850",   24 },
@@ -155,7 +146,7 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{                  "CP936",   29 },
 	{                  "CP949",   30 },
 	{                  "CP950",   31 },
-	{                "CSASCII",   94 },
+	{                "CSASCII",   88 },
 	{                 "CSBIG5",    5 },
 	{                "CSEUCKR",   33 },
 	{    "CSEUCPKDFMTJAPANESE",   32 },
@@ -189,11 +180,9 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{    "CSPC850MULTILINGUAL",   24 },
 	{     "CSPC862LATINHEBREW",   25 },
 	{             "CSSHIFTJIS",   84 },
-	{                 "CSUCS4",   89 },
-	{              "CSUNICODE",   86 },
 	{            "CSUNICODE11",    3 },
-	{        "CSUNICODE11UTF7",  101 },
-	{               "CSVISCII",  102 },
+	{        "CSUNICODE11UTF7",   93 },
+	{               "CSVISCII",   94 },
 	{               "CYRILLIC",   53 },
 	{               "ECMA-114",   54 },
 	{               "ECMA-118",   55 },
@@ -221,14 +210,12 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{                     "HZ",   38 },
 	{             "HZ-GB-2312",   38 },
 	{             "IBM-CP1133",   12 },
-	{                 "IBM367",   94 },
+	{                 "IBM367",   88 },
 	{                 "IBM437",   23 },
 	{                 "IBM819",    0 },
 	{                 "IBM850",   24 },
 	{                 "IBM862",   25 },
 	{                 "IBM866",   26 },
-	{        "ISO-10646-UCS-2",   86 },
-	{        "ISO-10646-UCS-4",   89 },
 	{            "ISO-2022-CN",   39 },
 	{        "ISO-2022-CN-EXT",   40 },
 	{            "ISO-2022-JP",   41 },
@@ -271,11 +258,11 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{             "ISO-IR-226",   49 },
 	{              "ISO-IR-57",    9 },
 	{              "ISO-IR-58",    8 },
-	{               "ISO-IR-6",   94 },
+	{               "ISO-IR-6",   88 },
 	{              "ISO-IR-87",   62 },
 	{              "ISO646-CN",    9 },
 	{              "ISO646-JP",   58 },
-	{              "ISO646-US",   94 },
+	{              "ISO646-US",   88 },
 	{              "ISO8859-1",    0 },
 	{             "ISO8859-10",   45 },
 	{             "ISO8859-15",   48 },
@@ -286,7 +273,7 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{              "ISO8859-7",   55 },
 	{              "ISO8859-8",   56 },
 	{              "ISO8859-9",   57 },
-	{       "ISO_646.IRV:1991",   94 },
+	{       "ISO_646.IRV:1991",   88 },
 	{             "ISO_8859-1",    0 },
 	{            "ISO_8859-10",   45 },
 	{       "ISO_8859-10:1992",   45 },
@@ -391,38 +378,27 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{          "TIS620.2529-1",   61 },
 	{          "TIS620.2533-0",   61 },
 	{          "TIS620.2533-1",   61 },
-	{                  "UCS-2",   86 },
-	{         "UCS-2-INTERNAL",   87 },
-	{          "UCS-2-SWAPPED",   88 },
 	{                "UCS-2BE",    3 },
 	{                "UCS-2LE",    2 },
-	{                  "UCS-4",   89 },
-	{         "UCS-4-INTERNAL",   90 },
-	{          "UCS-4-SWAPPED",   91 },
-	{                "UCS-4BE",   92 },
-	{                "UCS-4LE",   93 },
-	{                   "UCS2",   86 },
-	{                   "UCS4",   89 },
+	{                "UCS-4BE",   86 },
+	{                "UCS-4LE",   87 },
 	{                    "UHC",   30 },
 	{            "UNICODE-1-1",    3 },
-	{      "UNICODE-1-1-UTF-7",  101 },
+	{      "UNICODE-1-1-UTF-7",   93 },
 	{             "UNICODEBIG",    3 },
 	{          "UNICODELITTLE",    2 },
-	{                     "US",   94 },
-	{               "US-ASCII",   94 },
-	{                 "UTF-16",   95 },
-	{               "UTF-16BE",   96 },
-	{               "UTF-16LE",   97 },
-	{                 "UTF-32",   98 },
-	{               "UTF-32BE",   99 },
-	{               "UTF-32LE",  100 },
-	{                  "UTF-7",  101 },
+	{                     "US",   88 },
+	{               "US-ASCII",   88 },
+	{               "UTF-16BE",   89 },
+	{               "UTF-16LE",   90 },
+	{               "UTF-32BE",   91 },
+	{               "UTF-32LE",   92 },
+	{                  "UTF-7",   93 },
 	{                  "UTF-8",    1 },
-	{                  "UTF16",   95 },
-	{                   "UTF7",  101 },
+	{                   "UTF7",   93 },
 	{                   "UTF8",    1 },
-	{                 "VISCII",  102 },
-	{            "VISCII1.1-1",  102 },
+	{                 "VISCII",   94 },
+	{            "VISCII1.1-1",   94 },
 	{             "WINBALTRIM",   20 },
 	{           "WINDOWS-1250",   13 },
 	{           "WINDOWS-1251",   14 },
@@ -481,8 +457,6 @@ static const CHARACTER_SET_ALIAS iconv_aliases[] = {
 	{                   "sjis",   84 },
 	{                  "thai8",   61 },
 	{                 "tis620",   61 },
-	{                   "ucs2",   86 },
-	{                   "ucs4",   89 },
 	{                   "utf8",    1 },
 	{NULL,	0}
 };
@@ -513,7 +487,7 @@ static const CHARACTER_SET_ALIAS sybase_aliases[] = {
 	{             "iso13",  46 },
 	{             "iso14",  47 },
 	{             "iso15",  48 },
-	{            "iso646",  94 },
+	{            "iso646",  88 },
 	{          "iso88592",  50 },
 	{          "iso88595",  53 },
 	{          "iso88596",  54 },
@@ -622,23 +596,15 @@ enum {
 	            TDS_CHARSET_ROMAN8 =  83,
 	              TDS_CHARSET_SJIS =  84,
 	              TDS_CHARSET_TCVN =  85,
-	             TDS_CHARSET_UCS_2 =  86,
-	    TDS_CHARSET_UCS_2_INTERNAL =  87,
-	     TDS_CHARSET_UCS_2_SWAPPED =  88,
-	             TDS_CHARSET_UCS_4 =  89,
-	    TDS_CHARSET_UCS_4_INTERNAL =  90,
-	     TDS_CHARSET_UCS_4_SWAPPED =  91,
-	           TDS_CHARSET_UCS_4BE =  92,
-	           TDS_CHARSET_UCS_4LE =  93,
-	          TDS_CHARSET_US_ASCII =  94,
-	            TDS_CHARSET_UTF_16 =  95,
-	          TDS_CHARSET_UTF_16BE =  96,
-	          TDS_CHARSET_UTF_16LE =  97,
-	            TDS_CHARSET_UTF_32 =  98,
-	          TDS_CHARSET_UTF_32BE =  99,
-	          TDS_CHARSET_UTF_32LE = 100,
-	             TDS_CHARSET_UTF_7 = 101,
-	            TDS_CHARSET_VISCII = 102,
-	              TDS_NUM_CHARSETS = 103
+	           TDS_CHARSET_UCS_4BE =  86,
+	           TDS_CHARSET_UCS_4LE =  87,
+	          TDS_CHARSET_US_ASCII =  88,
+	          TDS_CHARSET_UTF_16BE =  89,
+	          TDS_CHARSET_UTF_16LE =  90,
+	          TDS_CHARSET_UTF_32BE =  91,
+	          TDS_CHARSET_UTF_32LE =  92,
+	             TDS_CHARSET_UTF_7 =  93,
+	            TDS_CHARSET_VISCII =  94,
+	              TDS_NUM_CHARSETS =  95
 };
 

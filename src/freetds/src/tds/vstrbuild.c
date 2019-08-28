@@ -76,16 +76,6 @@ norm_fmt(const char *fmt, int fmtlen)
 	return newfmt;
 }
 
-static void defaultLogPtr(char * message) {
-    fprintf("%s", message);
-}
-
-static void (*sqlProLogPtr)(char * message) = defaultLogPtr;
-void setSQLProLogPtr(void (*functionPtr)(char *))
-{
-    sqlProLogPtr = functionPtr;
-}
-
 TDSRET
 tds_vstrbuild(char *buffer, int buflen, int *resultlen, const char *text, int textlen, const char *formats, int formatlen, va_list ap)
 {
@@ -110,25 +100,13 @@ tds_vstrbuild(char *buffer, int buflen, int *resultlen, const char *text, int te
 	if (textlen == TDS_NULLTERM) {
 		textlen = (int)strlen(text);
 	}
-
-    const int logBufferSize = 2048;
-    char logBuffer[logBufferSize] = {0};
-
-    snprintf(&logBuffer, logBufferSize, "Test1: %s, (len: %ld)", formats, formatlen);
-    sqlProLogPtr(logBuffer);
-
 	if ((newformat = norm_fmt(formats, formatlen)) == NULL) {
 		return TDS_FAIL;
 	}
-
-    snprintf(&logBuffer, logBufferSize, "Test2: %s", NULL == newformat ? "<null>" : newformat);
-    sqlProLogPtr(logBuffer);
-
 	if (vasprintf(&params, newformat, ap) < 0) {
 		free(newformat);
 		return TDS_FAIL;
 	}
-
 	free(newformat);
 	for (token = strtok_r(params, sep, &lasts); token != NULL; token = strtok_r(NULL, sep, &lasts)) {
 		if ((*tail = tds_new(struct string_linked_list, 1)) == NULL) {

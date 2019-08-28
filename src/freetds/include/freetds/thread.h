@@ -26,7 +26,9 @@
 
 #if defined(_THREAD_SAFE) && defined(TDS_HAVE_PTHREAD_MUTEX)
 
+#include <tds_sysdep_public.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include <freetds/pushvis.h>
 
@@ -82,6 +84,7 @@ typedef pthread_t tds_thread_id;
 typedef void *(*tds_thread_proc)(void *arg);
 #define TDS_THREAD_PROC_DECLARE(name, arg) \
 	void *name(void *arg)
+#define TDS_THREAD_RESULT(n) ((void*)(intptr_t)(n))
 
 static inline int tds_thread_create(tds_thread *ret, tds_thread_proc proc, void *arg)
 {
@@ -116,21 +119,31 @@ static inline int tds_thread_is_current(tds_thread_id th)
 
 #elif defined(_WIN32)
 
+#include <freetds/windows.h>
+#include <errno.h>
+
+/* old version of Windows do not define this constant */
+#ifndef ETIMEDOUT
+#define ETIMEDOUT 138
+#endif
+
 struct ptw32_mcs_node_t_;
 
 typedef struct {
 	struct ptw32_mcs_node_t_ *lock;
 	LONG done;
+	DWORD thread_id;
 	CRITICAL_SECTION crit;
 } tds_raw_mutex;
 
-#define TDS_RAW_MUTEX_INITIALIZER { NULL, 0 }
+#define TDS_RAW_MUTEX_INITIALIZER { NULL, 0, 0 }
 
 static inline int
 tds_raw_mutex_init(tds_raw_mutex *mtx)
 {
 	mtx->lock = NULL;
 	mtx->done = 0;
+	mtx->thread_id = 0;
 	return 0;
 }
 
@@ -138,24 +151,27 @@ void tds_win_mutex_lock(tds_raw_mutex *mutex);
 
 static inline void tds_raw_mutex_lock(tds_raw_mutex *mtx)
 {
-	if ((mtx)->done)
-		EnterCriticalSection(&(mtx)->crit);
-	else
+	if (mtx->done) {
+		EnterCriticalSection(&mtx->crit);
+		mtx->thread_id = GetCurrentThreadId();
+	} else {
 		tds_win_mutex_lock(mtx);
+	}
 }
 
 int tds_raw_mutex_trylock(tds_raw_mutex *mtx);
 
 static inline void tds_raw_mutex_unlock(tds_raw_mutex *mtx)
 {
-	LeaveCriticalSection(&(mtx)->crit);
+	mtx->thread_id = 0;
+	LeaveCriticalSection(&mtx->crit);
 }
 
 static inline void tds_raw_mutex_free(tds_raw_mutex *mtx)
 {
-	if ((mtx)->done) {
-		DeleteCriticalSection(&(mtx)->crit);
-		(mtx)->done = 0;
+	if (mtx->done) {
+		DeleteCriticalSection(&mtx->crit);
+		mtx->done = 0;
 	}
 }
 
@@ -179,19 +195,20 @@ static inline int tds_raw_cond_wait(tds_condition *cond, tds_raw_mutex *mtx)
 
 typedef HANDLE tds_thread;
 typedef DWORD  tds_thread_id;
-typedef void *(WINAPI *tds_thread_proc)(void *arg);
+typedef DWORD (WINAPI *tds_thread_proc)(void *arg);
 #define TDS_THREAD_PROC_DECLARE(name, arg) \
-	void *WINAPI name(void *arg)
+	DWORD WINAPI name(void *arg)
+#define TDS_THREAD_RESULT(n) ((DWORD)(int)(n))
 
 static inline int tds_thread_create(tds_thread *ret, tds_thread_proc proc, void *arg)
 {
-	*ret = CreateThread(NULL, 0, (DWORD (WINAPI *)(void*)) proc, arg, 0, NULL);
+	*ret = CreateThread(NULL, 0, proc, arg, 0, NULL);
 	return *ret != NULL ? 0 : 11 /* EAGAIN */;
 }
 
 static inline int tds_thread_create_detached(tds_thread_proc proc, void *arg)
 {
-	HANDLE h = CreateThread(NULL, 0, (DWORD (WINAPI *)(void*)) proc, arg, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0, proc, arg, 0, NULL);
 	if (h)
 		return 0;
 	CloseHandle(h);
@@ -201,9 +218,12 @@ static inline int tds_thread_create_detached(tds_thread_proc proc, void *arg)
 static inline int tds_thread_join(tds_thread th, void **ret)
 {
 	if (WaitForSingleObject(th, INFINITE) == WAIT_OBJECT_0) {
-		DWORD r;
-		if (ret && GetExitCodeThread(th, &r))
+		if (ret) {
+			DWORD r;
+			if (!GetExitCodeThread(th, &r))
+				r = 0xffffffffu;
 			*ret = (void*) (((char*)0) + r);
+		}
 
 		CloseHandle(th);
 		return 0;
@@ -224,8 +244,11 @@ static inline int tds_thread_is_current(tds_thread_id th)
 
 #else
 
+#include <tds_sysdep_public.h>
+
 /* define noops as "successful" */
 typedef struct {
+	char dummy[0]; /* compiler compatibility */
 } tds_raw_mutex;
 
 #define TDS_RAW_MUTEX_INITIALIZER {}
@@ -253,6 +276,7 @@ static inline void tds_raw_mutex_free(tds_raw_mutex *mtx)
 }
 
 typedef struct {
+	char dummy[0]; /* compiler compatibility */
 } tds_condition;
 
 static inline int tds_raw_cond_init(tds_condition *cond)
@@ -273,12 +297,14 @@ static inline int tds_raw_cond_destroy(tds_condition *cond)
 	FreeTDS_Condition_not_compiled
 
 typedef struct {
+	char dummy[0]; /* compiler compatibility */
 } tds_thread;
 typedef int tds_thread_id;
 
 typedef void *(*tds_thread_proc)(void *arg);
 #define TDS_THREAD_PROC_DECLARE(name, arg) \
 	void *name(void *arg)
+#define TDS_THREAD_RESULT(n) ((void*)(intptr_t)(n))
 
 #define tds_thread_create(ret, proc, arg) \
 	FreeTDS_Thread_not_compiled
@@ -299,10 +325,8 @@ static inline int tds_thread_is_current(tds_thread_id th)
 	return 1;
 }
 
-
 #endif
 
-#ifdef TDS_HAVE_MUTEX
 #  define tds_cond_init tds_raw_cond_init
 #  define tds_cond_destroy tds_raw_cond_destroy
 #  define tds_cond_signal tds_raw_cond_signal
@@ -402,7 +426,6 @@ static inline int tds_cond_timedwait(tds_condition *cond, tds_mutex *mtx, int ti
 	return ret;
 }
 
-# endif
-#endif
+#  endif
 
 #endif

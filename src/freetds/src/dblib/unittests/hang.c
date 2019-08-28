@@ -30,7 +30,7 @@
 #include <netinet/in.h>
 #endif /* HAVE_NET_INET_IN_H */
 
-#include <freetds/sysdep_private.h>
+#include <freetds/utils.h>
 
 char *UNITTEST;
 
@@ -63,6 +63,8 @@ shutdown_socket(DBPROCESS *dbproc)
 	/* replace socket with a new one */
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0)
 		return 0;
+
+	tds_socket_set_nosigpipe(sockets[0], 1);
 
 	/* substitute socket */
 	close(socket);

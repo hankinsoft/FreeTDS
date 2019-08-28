@@ -36,15 +36,15 @@
 #if HAVE_SSPI
 #define SECURITY_WIN32
 
-#include <winsock2.h>
-#include <windows.h>
+#include <freetds/windows.h>
 #include <security.h>
 #include <sspi.h>
 #include <rpc.h>
 
 #include <freetds/tds.h>
 #include <freetds/thread.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
+#include <freetds/bool.h>
 #include "replacements.h"
 
 /**
@@ -70,18 +70,18 @@ static HMODULE secdll = NULL;
 static PSecurityFunctionTableA sec_fn = NULL;
 static tds_mutex sec_mutex = TDS_MUTEX_INITIALIZER;
 
-static int
+static bool
 tds_init_secdll(void)
 {
-	int res = 0;
+	bool res = false;
 
 	if (sec_fn)
-		return 1;
+		return true;
 
 	tds_mutex_lock(&sec_mutex);
 	for (;;) {
 		if (!secdll) {
-			secdll = LoadLibrary("secur32.dll");
+			secdll = LoadLibrary(TEXT("secur32.dll"));
 			if (!secdll)
 				break;
 		}
@@ -96,7 +96,7 @@ tds_init_secdll(void)
 			if (!sec_fn)
 				break;
 		}
-		res = 1;
+		res = true;
 		break;
 	}
 	tds_mutex_unlock(&sec_mutex);
@@ -108,9 +108,12 @@ tds_sspi_free(TDSCONNECTION * conn, struct tds_authentication * tds_auth)
 {
 	TDSSSPIAUTH *auth = (TDSSSPIAUTH *) tds_auth;
 
-	sec_fn->DeleteSecurityContext(&auth->cred_ctx);
-	sec_fn->FreeCredentialsHandle(&auth->cred);
-	sec_fn->FreeContextBuffer(auth->tds_auth.packet);
+	if (SecIsValidHandle(&auth->cred_ctx))
+		sec_fn->DeleteSecurityContext(&auth->cred_ctx);
+	if (SecIsValidHandle(&auth->cred))
+		sec_fn->FreeCredentialsHandle(&auth->cred);
+	if (auth->tds_auth.packet)
+		sec_fn->FreeContextBuffer(auth->tds_auth.packet);
 	free(auth->sname);
 	free(auth);
 	return TDS_SUCCESS;
@@ -124,14 +127,14 @@ tds_sspi_handle_next(TDSSOCKET * tds, struct tds_authentication * tds_auth, size
 	SECURITY_STATUS status;
 	ULONG attrs;
 	TimeStamp ts;
-	TDS_UCHAR *auth_buf;
+	uint8_t *auth_buf;
 
 	TDSSSPIAUTH *auth = (TDSSSPIAUTH *) tds_auth;
 
-	if (len < 32)
+	if (len < 1)
 		return TDS_FAIL;
 
-	auth_buf = tds_new(TDS_UCHAR, len);
+	auth_buf = tds_new(uint8_t, len);
 	if (!auth_buf)
 		return TDS_FAIL;
 	tds_get_n(tds, auth_buf, (int)len);
@@ -225,11 +228,13 @@ tds_sspi_get_auth(TDSSOCKET * tds)
 	}
 
 	auth = tds_new0(TDSSSPIAUTH, 1);
-	if (!auth || !tds->login)
+	if (!auth)
 		return NULL;
 
 	auth->tds_auth.free = tds_sspi_free;
 	auth->tds_auth.handle_next = tds_sspi_handle_next;
+	SecInvalidateHandle(&auth->cred);
+	SecInvalidateHandle(&auth->cred_ctx);
 
 	/* using Negotiate system will use proper protocol (either NTLM or Kerberos) */
 	if (sec_fn->AcquireCredentialsHandle(NULL, (char *)"Negotiate", SECPKG_CRED_OUTBOUND,
@@ -272,8 +277,7 @@ tds_sspi_get_auth(TDSSOCKET * tds)
 		if (asprintf(&auth->sname, "MSSQLSvc/%s:%d", server_name, login->port) < 0) {
 			if (addrs)
 				freeaddrinfo(addrs);
-			sec_fn->FreeCredentialsHandle(&auth->cred);
-			free(auth);
+			tds_sspi_free(tds->conn, &auth->tds_auth);
 			return NULL;
 		}
 		tdsdump_log(TDS_DBG_NETWORK, "kerberos name %s\n", auth->sname);
@@ -308,7 +312,6 @@ tds_sspi_get_auth(TDSSOCKET * tds)
 	return &auth->tds_auth;
 }
 
-#endif /* HAVE_SSPI */
-
 /** @} */
 
+#endif /* HAVE_SSPI */

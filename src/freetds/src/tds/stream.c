@@ -160,7 +160,7 @@ convert_more:
  * \return TDS_SUCCESS or TDS_FAIL
  */
 TDSRET
-tds_copy_stream(TDSSOCKET * tds, TDSINSTREAM * istream, TDSOUTSTREAM * ostream)
+tds_copy_stream(TDSINSTREAM * istream, TDSOUTSTREAM * ostream)
 {
 	while (ostream->buf_len) {
 		/* read a chunk of data */
@@ -187,7 +187,8 @@ tds_datain_stream_read(TDSINSTREAM *stream, void *ptr, size_t len)
 	TDSDATAINSTREAM *s = (TDSDATAINSTREAM *) stream;
 	if (len > s->wire_size)
 		len = s->wire_size;
-	tds_get_n(s->tds, ptr, len);
+	if (!tds_get_n(s->tds, ptr, len))
+		return -1;
 	s->wire_size -= len;
 	return len;
 }

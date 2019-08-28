@@ -18,7 +18,9 @@
 #include <freetds/tds.h>
 #include <freetds/data.h>
 
+#ifndef FREETDS_SRCDIR
 #define FREETDS_SRCDIR FREETDS_TOPDIR "/src/tds/unittests"
+#endif
 
 extern char PASSWORD[512];
 extern char USER[512];
@@ -37,5 +39,8 @@ extern int utf8_max_len;
 
 int get_unichar(const char **psrc);
 char *to_utf8(const char *src, char *dest);
+
+typedef void tds_any_type_t(TDSSOCKET *tds, TDSCOLUMN *col);
+void tds_all_types(TDSSOCKET *tds, tds_any_type_t *func);
 
 #endif

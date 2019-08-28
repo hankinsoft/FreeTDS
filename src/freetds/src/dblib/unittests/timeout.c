@@ -179,6 +179,12 @@ test(int per_process)
 			fprintf(stderr, "Failed: dbsetopt(..., DBSETTIME, \"%d\")\n", timeout_seconds);
 			exit(1);
 		}
+
+		/* Verify setting the global timeout won't override the per-process timeout value */
+		if (FAIL == dbsettime(35)) {
+			fprintf(stderr, "Failed: dbsettime\n");
+			exit(1);
+		}
 	} else {
 		if (FAIL == dbsettime(timeout_seconds)) {
 			fprintf(stderr, "Failed: dbsettime\n");
@@ -273,7 +279,7 @@ main(int argc, char **argv)
 
 	read_login_info(argc, argv);
 
-	fprintf(stdout, "Starting %s\n", argv[0]);
+	printf("Starting %s\n", argv[0]);
 
 	dbinit();
 

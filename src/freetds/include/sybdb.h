@@ -145,13 +145,7 @@ typedef int (*DB_DBHNDLINTR_FUNC) (void *dbproc);
 #endif
 typedef int STATUS;
 #if !defined(_WINDEF_) && !defined(_WINDEF_H) && !defined(DOS32X)
-# if defined (__OBJC__)
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-typedef signed char BOOL;
-#endif
-# else
 typedef int BOOL;
-#endif
 #endif
 #endif
 
@@ -255,15 +249,15 @@ typedef unsigned char DBBOOL;
 typedef char DBCHAR;
 typedef unsigned char DBBIT;
 typedef unsigned char DBTINYINT;
-typedef tds_sysdep_int16_type DBSMALLINT;
-typedef tds_sysdep_int32_type DBINT;
-typedef tds_sysdep_int64_type DBBIGINT;
+typedef int16_t DBSMALLINT;
+typedef int32_t DBINT;
+typedef int64_t DBBIGINT;
 typedef unsigned char DBBINARY;
 typedef tds_sysdep_real32_type DBREAL;
 typedef tds_sysdep_real64_type DBFLT8;
-typedef unsigned tds_sysdep_int16_type DBUSMALLINT;
-typedef unsigned tds_sysdep_int32_type DBUINT;
-typedef unsigned tds_sysdep_int64_type DBUBIGINT;
+typedef uint16_t DBUSMALLINT;
+typedef uint32_t DBUINT;
+typedef uint64_t DBUBIGINT;
 
 typedef struct 
 {
@@ -289,7 +283,7 @@ typedef DBNUMERIC DBDECIMAL;
 typedef struct
 {
 	DBINT mnyhigh;
-	unsigned tds_sysdep_int32_type mnylow;
+	DBUINT mnylow;
 } DBMONEY;
 
 typedef struct
@@ -315,6 +309,8 @@ typedef struct
 	DBINT      date;	/**< date, 0 = 1900-01-01 */
 	DBSMALLINT offset;	/**< time offset */
 	DBUSMALLINT time_prec:3;
+// fix a problem with some public headers defining _res
+#undef _res
 	DBUSMALLINT _res:10;
 	DBUSMALLINT has_time:1;
 	DBUSMALLINT has_date:1;
@@ -1293,6 +1289,8 @@ RETCODE dbsetlversion (LOGINREC * login, BYTE version);
 #define DBSETLUTF16(x,y)	dbsetlbool((x), (y), DBSETUTF16)
 #define DBSETNTLMV2		1002
 #define DBSETLNTLMV2(x,y)	dbsetlbool((x), (y), DBSETNTLMV2)
+#define DBSETREADONLY	1003
+#define DBSETLREADONLY(x,y)	dbsetlbool((x), (y), DBSETREADONLY)
 
 RETCODE bcp_init(DBPROCESS * dbproc, const char *tblname, const char *hfile, const char *errfile, int direction);
 DBINT bcp_done(DBPROCESS * dbproc);

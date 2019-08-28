@@ -250,8 +250,10 @@ enum
 #define CS_STICKY_BINDS CS_STICKY_BINDS
 	CS_SERVERADDR = 9206,
 #define CS_SERVERADDR CS_SERVERADDR
-	CS_PORT = 9300
+	CS_PORT = 9300,
 #define CS_PORT CS_PORT
+	CS_CLIENTCHARSET = 9301
+#define CS_CLIENTCHARSET CS_CLIENTCHARSET
 };
 
 /* Arbitrary precision math operators */
@@ -265,6 +267,8 @@ enum
 
 enum
 {
+#define CS_TDS_AUTO CS_TDS_AUTO
+	CS_TDS_AUTO = 0,
 	CS_TDS_40 = 7360,
 	CS_TDS_42,
 	CS_TDS_46,
@@ -272,9 +276,13 @@ enum
 	CS_TDS_50,
 	CS_TDS_70,
 	CS_TDS_71,
+#define CS_TDS_71 CS_TDS_71
 	CS_TDS_72,
+#define CS_TDS_72 CS_TDS_72
 	CS_TDS_73,
+#define CS_TDS_73 CS_TDS_73
 	CS_TDS_74,
+#define CS_TDS_74 CS_TDS_74
 };
 
 /* bit mask values used by CS_DATAFMT.status */
@@ -581,6 +589,9 @@ enum
 #define CS_BIGDATETIME_TYPE TDS_STATIC_CAST(CS_INT, 35)
 #define CS_BIGTIME_TYPE     TDS_STATIC_CAST(CS_INT, 36)
 #define CS_UNIQUE_TYPE      TDS_STATIC_CAST(CS_INT, 40)
+
+#define CS_MIN_SYBTYPE CS_CHAR_TYPE
+#define CS_MAX_SYBTYPE CS_UNIQUE_TYPE
 
 #define CS_USER_TYPE        TDS_STATIC_CAST(CS_INT, 100)
 /* cs_dt_info type values */

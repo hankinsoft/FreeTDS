@@ -44,12 +44,13 @@
 #include <freetds/iconv.h>
 #include <freetds/convert.h>
 #include <freetds/bytes.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <replacements.h>
 #include <sybfront.h>
 #include <sybdb.h>
 #include <syberror.h>
 #include <dblib.h>
+#include "../tds/encodings.h"
 
 #define HOST_COL_CONV_ERROR 1
 #define HOST_COL_NULL_ERROR 2
@@ -83,6 +84,7 @@ static TDSRET _bcp_get_col_data(TDSBCPINFO *bcpinfo, TDSCOLUMN *bindcol, int off
 static TDSRET _bcp_no_get_col_data(TDSBCPINFO *bcpinfo, TDSCOLUMN *bindcol, int offset);
 
 static int rtrim(char *, int);
+static int rtrim_u16(uint16_t *str, int len, uint16_t space);
 static STATUS _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error);
 static int _bcp_readfmt_colinfo(DBPROCESS * dbproc, char *buf, BCP_HOSTCOLINFO * ci);
 static int _bcp_get_term_var(BYTE * pdata, BYTE * term, int term_len);
@@ -1071,6 +1073,51 @@ _bcp_convert_in(DBPROCESS *dbproc, TDS_SERVER_TYPE srctype, const TDS_CHAR *src,
 	return TDS_SUCCESS;
 }
 
+static void
+rtrim_bcpcol(TDSCOLUMN *bcpcol)
+{
+	/* trim trailing blanks from character data */
+	if (is_ascii_type(bcpcol->on_server.column_type)) {
+		/* A single NUL byte indicates an empty string. */
+		if (bcpcol->bcp_column_data->datalen == 1
+		    && bcpcol->bcp_column_data->data[0] == '\0') {
+			bcpcol->bcp_column_data->datalen = 0;
+			return;
+		}
+		bcpcol->bcp_column_data->datalen = rtrim((char *) bcpcol->bcp_column_data->data,
+								  bcpcol->bcp_column_data->datalen);
+		return;
+	}
+
+	/* unicode part */
+	if (is_unicode_type(bcpcol->on_server.column_type)) {
+		uint16_t *data, space;
+
+		if (!bcpcol->char_conv || bcpcol->char_conv->to.charset.min_bytes_per_char != 2)
+			return;
+
+		data = (uint16_t *) bcpcol->bcp_column_data->data;
+		/* A single NUL byte indicates an empty string. */
+		if (bcpcol->bcp_column_data->datalen == 2 && data[0] == 0) {
+			bcpcol->bcp_column_data->datalen = 0;
+			return;
+		}
+		switch (bcpcol->char_conv->to.charset.canonic) {
+		case TDS_CHARSET_UTF_16BE:
+		case TDS_CHARSET_UCS_2BE:
+			TDS_PUT_A2BE(&space, 0x20);
+			break;
+		case TDS_CHARSET_UTF_16LE:
+		case TDS_CHARSET_UCS_2LE:
+			TDS_PUT_A2LE(&space, 0x20);
+			break;
+		default:
+			return;
+		}
+		bcpcol->bcp_column_data->datalen = rtrim_u16(data, bcpcol->bcp_column_data->datalen, space);
+	}
+}
+
 /** 
  * \ingroup dblib_bcp_internal
  * \brief 
@@ -1173,12 +1220,10 @@ _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error)
 		if (!data_is_null && hostcol->column_len >= 0) {
 			if (hostcol->column_len == 0)
 				data_is_null = 1;
-			else {
-				if (collen)
-					collen = (hostcol->column_len < collen) ? hostcol->column_len : collen;
-				else
-					collen = hostcol->column_len;
-			}
+			else if (collen)
+				collen = (hostcol->column_len < collen) ? hostcol->column_len : collen;
+			else
+				collen = hostcol->column_len;
 		}
 
 		tdsdump_log(TDS_DBG_FUNC, "prefix_len = %d collen = %d \n", hostcol->prefix_len, collen);
@@ -1243,7 +1288,7 @@ _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error)
 			 */
 		} else {	/* unterminated field */
 
-			coldata = tds_new(TDS_UCHAR, 1 + collen);
+			coldata = tds_new(TDS_CHAR, 1 + collen);
 			if (coldata == NULL) {
 				*row_error = TRUE;
 				dbperror(dbproc, SYBEMEM, errno);
@@ -1254,9 +1299,9 @@ _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error)
 			if (collen) {
 				/* 
 				 * Read and convert the data
-				 * TODO: Call tds_iconv_fread() instead of fread(3).  
+				 * TODO: Call tds_bcp_fread() instead of fread(3).
 				 *       The columns should each have their iconv cd set, and noncharacter data
-				 *       should have -1 as the iconv cd, causing tds_iconv_fread() to not attempt
+				 *       should have -1 as the iconv cd, causing tds_bcp_fread() to not attempt
 				 * 	 any conversion.  We do not need a datatype switch here to decide what to do.  
 				 *	 As of 0.62, this *should* actually work.  All that remains is to change the
 				 *	 call and test it. 
@@ -1292,17 +1337,7 @@ _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error)
 						    collen, (TDS_INT8) col_start);
 				}
 
-				/* trim trailing blanks from character data */
-				if (desttype == SYBCHAR || desttype == SYBVARCHAR) {
-					/* A single NUL byte indicates an empty string. */
-					if (bcpcol->bcp_column_data->datalen == 1
-					    && bcpcol->bcp_column_data->data[0] == '\0') {
-						bcpcol->bcp_column_data->datalen = 0;
-					} else {
-						bcpcol->bcp_column_data->datalen = rtrim((char *) bcpcol->bcp_column_data->data,
-												  bcpcol->bcp_column_data->datalen);
-					}
-				}
+				rtrim_bcpcol(bcpcol);
 			}
 #if USING_SYBEBCNN
 			if (!hostcol->column_error) {
@@ -2272,6 +2307,17 @@ rtrim(char *str, int len)
 		*p-- = '\0';
 	}
 	return (int)(1 + p - str);
+}
+
+static int
+rtrim_u16(uint16_t *str, int len, uint16_t space)
+{
+	uint16_t *p = str + len / 2 - 1;
+
+	while (p > str && *p == space) {
+		*p-- = '\0';
+	}
+	return (int)(1 + p - str) * 2;
 }
 
 /** 

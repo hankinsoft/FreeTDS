@@ -40,6 +40,10 @@
 #endif /* HAVE_IODBCINST_H */
 #endif
 
+#ifdef HAVE_WCHAR_H
+#include <wchar.h>
+#endif
+
 #ifndef HAVE_SQLLEN
 #ifndef SQLULEN
 #define SQLULEN SQLUINTEGER
@@ -392,6 +396,10 @@ struct _hstmt
 	unsigned is_prepared_query:1;
 	unsigned prepared_query_is_func:1;
 	unsigned prepared_query_is_rpc:1;
+	/**
+	 * Prepared statement needs to be prepared again.
+	 * This can happen if the parameters was changed or not specified.
+	 */
 	unsigned need_reprepare:1;
 	unsigned param_data_called:1;
 	/* end prepared query stuff */
@@ -476,7 +484,7 @@ typedef struct {
 #endif
 
 #ifdef _WIN32
-BOOL get_login_info(HWND hwndParent, TDSLOGIN * login);
+bool get_login_info(HWND hwndParent, TDSLOGIN * login);
 #endif
 
 #define ODBC_PARAM_LIST \
@@ -540,7 +548,10 @@ int odbc_build_connect_string(TDS_ERRS *errs, TDS_PARSED_PARAM *params, char **o
 /*
  * convert_tds2sql.c
  */
-SQLLEN odbc_tds2sql(TDS_STMT * stmt, TDSCOLUMN *curcol, int srctype, TDS_CHAR * src, TDS_UINT srclen, int desttype, TDS_CHAR * dest, SQLULEN destlen, const struct _drecord *drec_ixd);
+SQLLEN odbc_tds2sql_col(TDS_STMT * stmt, TDSCOLUMN *curcol, int desttype, TDS_CHAR * dest, SQLULEN destlen, const struct _drecord *drec_ixd);
+SQLLEN odbc_tds2sql_int4(TDS_STMT * stmt, TDS_INT *src, int desttype, TDS_CHAR * dest, SQLULEN destlen);
+
+
 
 /*
  * descriptor.c
@@ -639,6 +650,9 @@ SQLRETURN odbc_set_string_flag(TDS_DBC *dbc, SQLPOINTER buffer, SQLINTEGER cbBuf
 	odbc_set_string_flag(dbc, buf, buf_len, out_len, s, s_len, (sizeof(*(out_len)) == sizeof(SQLSMALLINT)?0x20:0x30))
 #endif
 
+#define odbc_set_dstr_oct(dbc, buf, buf_len, out_len, s) odbc_set_string_oct(dbc, buf, buf_len, out_len, tds_dstr_cstr(s), tds_dstr_len(s))
+#define odbc_set_dstr(dbc, buf, buf_len, out_len, s) odbc_set_string(dbc, buf, buf_len, out_len, tds_dstr_cstr(s), tds_dstr_len(s))
+
 SQLSMALLINT odbc_get_concise_sql_type(SQLSMALLINT type, SQLSMALLINT interval);
 SQLRETURN odbc_set_concise_sql_type(SQLSMALLINT concise_type, struct _drecord *drec, int check_only);
 SQLSMALLINT odbc_get_concise_c_type(SQLSMALLINT type, SQLSMALLINT interval);
@@ -652,15 +666,16 @@ void odbc_convert_err_set(struct _sql_errors *errs, TDS_INT err);
  */
 SQLRETURN prepare_call(struct _hstmt *stmt);
 SQLRETURN native_sql(struct _hdbc *dbc, DSTR *s);
-int parse_prepared_query(struct _hstmt *stmt, int compute_row);
-int start_parse_prepared_query(struct _hstmt *stmt, int compute_row);
+int parse_prepared_query(struct _hstmt *stmt, bool compute_row);
+int start_parse_prepared_query(struct _hstmt *stmt, bool compute_row);
 int continue_parse_prepared_query(struct _hstmt *stmt, SQLPOINTER DataPtr, SQLLEN StrLen_or_Ind);
 const char *parse_const_param(const char * s, TDS_SERVER_TYPE *type);
+const char *odbc_skip_rpc_name(const char *s);
 
 /*
  * sql2tds.c
  */
-SQLRETURN odbc_sql2tds(TDS_STMT * stmt, const struct _drecord *drec_ixd, const struct _drecord *drec_axd, TDSCOLUMN *curcol, int compute_row, const TDS_DESC* axd, unsigned int n_row);
+SQLRETURN odbc_sql2tds(TDS_STMT * stmt, const struct _drecord *drec_ixd, const struct _drecord *drec_axd, TDSCOLUMN *curcol, bool compute_row, const TDS_DESC* axd, unsigned int n_row);
 TDS_INT convert_datetime2server(int bindtype, const void *src, TDS_DATETIMEALL * dta);
 
 /*
