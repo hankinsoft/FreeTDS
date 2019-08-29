@@ -8265,3 +8265,16 @@ dbperror(DBPROCESS *dbproc, DBINT msgno, long errnum, ...)
 	return rc; /* not reached */
 }
 
+int
+dbportforinstance(const char * host, const char * instanceName)
+{
+    struct addrinfo * addrInfo = NULL;
+
+    if (TDS_FAILED(tds_lookup_host_set(host, &addrInfo)))
+    {
+        tdsdump_log(TDS_DBG_WARN, "Found host entry %s however name resolution failed. \n", host);
+        return 0;
+    }
+
+    return tds7_get_instance_port(addrInfo, instanceName);
+}
