@@ -23,8 +23,8 @@
 #endif /* HAVE_STRING_H */
 
 #ifdef DBNTWIN32
-#include <windows.h>
-/* fix MingW missing declare */
+#include <freetds/windows.h>
+/* fix MinGW missing declare */
 #ifndef _WINDOWS_
 #define _WINDOWS_ 1
 #endif

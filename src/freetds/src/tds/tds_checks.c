@@ -35,7 +35,7 @@
 
 #include <freetds/tds.h>
 #include <freetds/convert.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/checks.h>
 
 #if ENABLE_EXTRA_CHECKS
@@ -256,6 +256,7 @@ tds_check_column_extra(const TDSCOLUMN * column)
 		assert(column->column_type == column->on_server.column_type);
 		assert(column->column_size == column->on_server.column_size);
 	}
+	assert(column->column_iconv_left >= 0 && column->column_iconv_left <= sizeof(column->column_iconv_buf));
 }
 
 void

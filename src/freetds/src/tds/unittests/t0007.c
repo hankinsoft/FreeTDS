@@ -287,7 +287,7 @@ main(int argc, char **argv)
 
 	/* money */
 	test2("1234.11111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
-		SYBMONEY, SYBCHAR, "len=7 1234.11");
+		SYBMONEY, SYBCHAR, "len=9 1234.1111");
 
 	/* some test for unique */
 	printf("unique type...\n");
@@ -396,7 +396,7 @@ main(int argc, char **argv)
 		}
 		buf[len_dst] = 0;
 		if (*type2 == SYBMONEY4 || *type2 == SYBMONEY)
-			sprintf(expected, "%s.00", *value);
+			sprintf(expected, "%s.0000", *value);
 		else
 			strcpy(expected, *value);
 		if (strcmp(buf, expected) != 0) {

@@ -21,36 +21,86 @@
 #define _tds_sysdep_public_h_
 
 /*
-** This is where platform-specific changes need to be made.
-*/
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#define tds_sysdep_int16_type short	/* 16-bit int */
-#define tds_sysdep_int32_type int	/* 32-bit int */
-#define tds_sysdep_int64_type __int64	/* 64-bit int */
-#define tds_sysdep_real32_type float	/* 32-bit real */
-#define tds_sysdep_real64_type double	/* 64-bit real */
-#if !defined(WIN64) && !defined(_WIN64)
-#define tds_sysdep_intptr_type int      /* 32-bit int */
+ * This file is publicly installed.
+ * MUST not include config.h
+ */
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#  include <stdint.h>
 #else
-#define tds_sysdep_intptr_type __int64  /* 64-bit int */
+typedef   signed char      int8_t;	/* 8-bit int */
+typedef unsigned char     uint8_t;	/* 8-bit int */
+/*
+ * This is where platform-specific changes need to be made.
+ */
+#  if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+#    include <winsock2.h>
+#    include <ws2tcpip.h>
+#    include <windows.h>
+  typedef   signed short    int16_t;	/* 16-bit int */
+  typedef unsigned short   uint16_t;	/* 16-bit int */
+  typedef   signed int      int32_t;	/* 32-bit int */
+  typedef unsigned int     uint32_t;	/* 32-bit int */
+  typedef   signed __int64  int64_t;	/* 64-bit int */
+  typedef unsigned __int64 uint64_t;	/* 64-bit int */
+#    if !defined(WIN64) && !defined(_WIN64)
+    typedef   signed int   intptr_t;    /* 32-bit int */
+    typedef unsigned int  uintptr_t;    /* 32-bit int */
+#    else
+    typedef   signed __int64  intptr_t;	/* 64-bit int */
+    typedef unsigned __int64 uintptr_t;	/* 64-bit int */
+#    endif
+#  else				/* defined(WIN32) || defined(_WIN32) || defined(__WIN32__) */
+  typedef   signed  short   int16_t;	/* 16-bit int */
+  typedef unsigned  short  uint16_t;	/* 16-bit int */
+  typedef   signed  int   int32_t;	/* 32-bit int */
+  typedef unsigned  int  uint32_t;	/* 32-bit int */
+  typedef   signed  long   int64_t;	/* 64-bit int */
+  typedef unsigned  long  uint64_t;	/* 64-bit int */
+  typedef   signed long  intptr_t;
+  typedef unsigned long uintptr_t;
+#  endif
 #endif
-#endif				/* defined(WIN32) || defined(_WIN32) || defined(__WIN32__) */
 
-#ifndef tds_sysdep_int16_type
-#define tds_sysdep_int16_type short	/* 16-bit int */
-#endif				/* !tds_sysdep_int16_type */
+#include <float.h>
 
-#ifndef tds_sysdep_int32_type
-#define tds_sysdep_int32_type int	/* 32-bit int */
-#endif				/* !tds_sysdep_int32_type */
+/* try to understand float sizes using float.h constants */
+#if FLT_RADIX == 2
+#  if FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128
+#    define tds_sysdep_real32_type float	/* 32-bit real */
+#  elif DBL_MANT_DIG == 24 && DBL_MAX_EXP == 128
+#    define tds_sysdep_real32_type double	/* 32-bit real */
+#  elif LDBL_MANT_DIG == 24 && LDBL_MAX_EXP == 128
+#    define tds_sysdep_real32_type long double	/* 32-bit real */
+#  endif
+#  if FLT_MANT_DIG == 53 && FLT_MAX_EXP == 1024
+#    define tds_sysdep_real64_type float	/* 64-bit real */
+#  elif DBL_MANT_DIG == 53 && DBL_MAX_EXP == 1024
+#    define tds_sysdep_real64_type double	/* 64-bit real */
+#  elif LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
+#    define tds_sysdep_real64_type long double	/* 64-bit real */
+#  endif
+#  if !defined(tds_sysdep_real32_type) || !defined(tds_sysdep_real64_type)
+#    error Some float type was not found!
+#  endif
+#else
+#  if FLT_DIG == 6 && FLT_MAX_10_EXP == 38
+#    define tds_sysdep_real32_type float	/* 32-bit real */
+#  elif DBL_DIG == 6 && DBL_MAX_10_EXP == 38
+#    define tds_sysdep_real32_type double	/* 32-bit real */
+#  elif LDBL_DIG == 6 && LDBL_MAX_10_EXP == 38
+#    define tds_sysdep_real32_type long double	/* 32-bit real */
+#  endif
+#  if FLT_DIG == 15 && FLT_MAX_10_EXP == 308
+#    define tds_sysdep_real64_type float	/* 64-bit real */
+#  elif DBL_DIG == 15 && DBL_MAX_10_EXP == 308
+#    define tds_sysdep_real64_type double	/* 64-bit real */
+#  elif LDBL_DIG == 15 && LDBL_MAX_10_EXP == 308
+#    define tds_sysdep_real64_type long double	/* 64-bit real */
+#  endif
+#endif
 
-#ifndef tds_sysdep_int64_type
-#define tds_sysdep_int64_type long	/* 64-bit int */
-#endif				/* !tds_sysdep_int64_type */
-
+/* fall back to configure.ac types */
 #ifndef tds_sysdep_real32_type
 #define tds_sysdep_real32_type float	/* 32-bit real */
 #endif				/* !tds_sysdep_real32_type */
@@ -59,12 +109,8 @@
 #define tds_sysdep_real64_type double	/* 64-bit real */
 #endif				/* !tds_sysdep_real64_type */
 
-#ifndef tds_sysdep_intptr_type
-#define tds_sysdep_intptr_type long
-#endif				/* !tds_sysdep_intptr_type */
-
 #if !defined(MSDBLIB) && !defined(SYBDBLIB)
-#define MSDBLIB 1
+#define SYBDBLIB 1
 #endif
 #if defined(MSDBLIB) && defined(SYBDBLIB)
 #error MSDBLIB and SYBDBLIB cannot both be defined

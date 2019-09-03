@@ -28,16 +28,16 @@ if(PERL_FOUND AND NOT EXISTS "${CMAKE_SOURCE_DIR}/configure")
 endif(PERL_FOUND AND NOT EXISTS "${CMAKE_SOURCE_DIR}/configure")
 
 if(WIN32)
-	set(add_SRCS sspi.c md5.c)
+	set(add_SRCS sspi.c)
 else(WIN32)
-	set(add_SRCS challenge.c md4.c md5.c des.c gssapi.c hmac_md5.c)
+	set(add_SRCS challenge.c gssapi.c)
 endif(WIN32)
 
 add_library(tds STATIC
 	mem.c token.c util.c login.c read.c
         write.c convert.c numeric.c config.c query.c iconv.c
-        locale.c threadsafe.c vstrbuild.c
-        tdsstring.c getmac.c data.c net.c tls.c
+        locale.c vstrbuild.c
+        getmac.c data.c net.c tls.c
         tds_checks.c log.c
         bulk.c packet.c stream.c random.c
         sec_negotiate_gnutls.h sec_negotiate_openssl.h sec_negotiate.c
@@ -45,5 +45,14 @@ add_library(tds STATIC
 	${add_SRCS}
 )
 if (NOT WIN32)
-	set_target_properties(tds PROPERTIES COMPILE_FLAGS -fPIC)
+	set_target_properties(tds PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
+
+if(WIN32)
+INSTALL(TARGETS tds
+	PUBLIC_HEADER DESTINATION include
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+	)
+endif(WIN32)

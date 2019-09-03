@@ -63,17 +63,23 @@ unfinished_query_test(TDSSOCKET *tds)
 	}
 	len *= char_len;
 
-	/* send the query using tds_put_int8, non allineati */
+	/* send the query using tds_put_int8, not aligned */
 	tds->out_flag = TDS_QUERY;
 	if (tds_set_state(tds, TDS_WRITING) != TDS_WRITING)
 		exit(1);
 	p = buf;
 	memcpy(conv.buf, p, 2);
+#ifdef WORDS_BIGENDIAN
+	tds_swap_bytes(conv.buf, 2);
+#endif
 	tds_put_smallint(tds, conv.si);
 	p += 2;
 	for (; p < buf + len; p += 8) {
 		CHECK_TDS_EXTRA(tds);
 		memcpy(conv.buf, p, 8);
+#ifdef WORDS_BIGENDIAN
+		tds_swap_bytes(conv.buf, 8);
+#endif
 		tds_put_int8(tds, conv.i8);
 	}
 	tds_flush_packet(tds);

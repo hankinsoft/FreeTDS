@@ -32,9 +32,10 @@
 #include <freetds/iconv.h>
 #include <freetds/tls.h>
 #include <freetds/checks.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include "replacements.h"
 #include <freetds/enum_cap.h>
+#include <freetds/utils.h>
 
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -117,6 +118,10 @@ tds_get_dynid(TDSCONNECTION * conn, char *id)
 	return id;
 }
 
+#include <freetds/pushvis.h>
+extern const TDSCOLUMNFUNCS tds_invalid_funcs;
+#include <freetds/popvis.h>
+
 static TDSCOLUMN *
 tds_alloc_column(void)
 {
@@ -126,6 +131,7 @@ tds_alloc_column(void)
 	tds_dstr_init(&col->table_name);
 	tds_dstr_init(&col->column_name);
 	tds_dstr_init(&col->table_column_name);
+	col->funcs = &tds_invalid_funcs;
 
       Cleanup:
 	return col;
@@ -279,6 +285,10 @@ tds_alloc_param_result(TDSPARAMINFO * old_param)
 {
 	TDSPARAMINFO *param_info;
 	TDSCOLUMN *colinfo;
+
+	/* parameters cannot have row associated */
+	if (old_param && (old_param->current_row || old_param->row_free))
+		return NULL;
 
 	colinfo = tds_alloc_column();
 	if (!colinfo)
@@ -467,6 +477,7 @@ tds_set_current_results(TDSSOCKET *tds, TDSRESULTINFO *info)
 		tds->current_results->attached_to = NULL;
 	if (info)
 		info->attached_to = tds;
+	tds->in_row = (info != NULL);
 	tds->current_results = info;
 }
 
@@ -478,6 +489,7 @@ tds_detach_results(TDSRESULTINFO *info)
 {
 	if (info && info->attached_to) {
 		info->attached_to->current_results = NULL;
+		info->attached_to->in_row = false;
 		info->attached_to = NULL;
 	}
 }
@@ -649,7 +661,8 @@ tds_free_all_results(TDSSOCKET * tds)
 	tds_free_param_results(tds->param_info);
 	tds->param_info = NULL;
 	tds_free_compute_results(tds);
-	tds->has_status = 0;
+	tds->has_status = false;
+	tds->in_row = false;
 	tds->ret_status = 0;
 	if (tds->cur_dyn)
 		tds_detach_results(tds->cur_dyn->res_info);
@@ -711,6 +724,7 @@ tds_alloc_context(void * parent)
 	}
 	context->locale = locale;
 	context->parent = parent;
+	context->money_use_2_digits = false;
 
 	return context;
 }
@@ -794,10 +808,10 @@ tds_init_login(TDSLOGIN *login, TDSLOCALE * locale)
 
 	/*
 	 * TDS 7.0:
-	 * 0x02 indicates ODBC driver
-	 * 0x01 means change to initial language must succeed
+	 * ODBC driver settings.
+	 * Change to initial language must succeed.
 	 */
-	login->option_flag2 = 0x03;
+	login->option_flag2 = TDS_INIT_LANG_REQUIRED|TDS_ODBC_ON;
 	login->tds_version = TDS_DEFAULT_VERSION;
 	login->block_size = 0;
 
@@ -961,6 +975,7 @@ tds_alloc_login(int use_environment)
 	TEST_MALLOC(login, TDSLOGIN);
 	login->check_ssl_hostname = 1;
 	login->use_utf16 = 1;
+	login->bulk_copy = 1;
 	tds_dstr_init(&login->server_name);
 	tds_dstr_init(&login->language);
 	tds_dstr_init(&login->server_charset);
@@ -973,7 +988,6 @@ tds_alloc_login(int use_environment)
 	tds_dstr_init(&login->new_password);
 
 	login->ip_addrs = NULL;
-	login->connected_addr = NULL;
 
 	tds_dstr_init(&login->database);
 	tds_dstr_init(&login->dump_file);
@@ -984,6 +998,8 @@ tds_alloc_login(int use_environment)
 	tds_dstr_init(&login->cafile);
 	tds_dstr_init(&login->crlfile);
 	tds_dstr_init(&login->db_filename);
+	tds_dstr_init(&login->openssl_ciphers);
+	tds_dstr_init(&login->routing_address);
 
 	if (use_environment) {
 		const char *s;
@@ -1000,9 +1016,11 @@ tds_alloc_login(int use_environment)
 	}
 
 	login->capabilities = defaultcaps;
-    login->use_ntlmv2_specified = 0;
+	login->use_ntlmv2_specified = 0;
+	login->use_ntlmv2 = 1;
+	login->enable_tls_v1 = 1;
 
-	Cleanup:
+Cleanup:
 	return login;
 }
 
@@ -1038,6 +1056,8 @@ tds_free_login(TDSLOGIN * login)
 	tds_dstr_free(&login->cafile);
 	tds_dstr_free(&login->crlfile);
 	tds_dstr_free(&login->db_filename);
+	tds_dstr_free(&login->openssl_ciphers);
+	tds_dstr_free(&login->routing_address);
 	free(login);
 }
 

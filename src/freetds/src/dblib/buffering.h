@@ -14,6 +14,14 @@ static RETCODE buffer_save_row(DBPROCESS *dbproc);
 static DBLIB_BUFFER_ROW* buffer_row_address(const DBPROC_ROWBUF * buf, int idx);
 
 #if ENABLE_EXTRA_CHECKS
+static void buffer_check_row_empty(DBLIB_BUFFER_ROW *row)
+{
+	assert(row->resinfo == NULL);
+	assert(row->row_data == NULL);
+	assert(row->sizes == NULL);
+	assert(row->row == 0);
+}
+
 static void buffer_check(const DBPROC_ROWBUF *buf)
 {
 	int i;
@@ -35,12 +43,8 @@ static void buffer_check(const DBPROC_ROWBUF *buf)
 	/* check empty */
 	if (buf->tail == buf->capacity) {
 		assert(buf->head == 0);
-		for (i = 0; buf->rows && i < buf->capacity; ++i) {
-			assert(buf->rows[i].resinfo == NULL);
-			assert(buf->rows[i].row_data == NULL);
-			assert(buf->rows[i].sizes == NULL);
-			assert(buf->rows[i].row == 0);
-		}
+		for (i = 0; buf->rows && i < buf->capacity; ++i)
+			buffer_check_row_empty(&buf->rows[i]);
 		return;
 	}
 
@@ -64,10 +68,7 @@ static void buffer_check(const DBPROC_ROWBUF *buf)
 		i = buf->head;
 		do {
 			assert(i >= 0 && i < buf->capacity);
-			assert(buf->rows[i].resinfo == NULL);
-			assert(buf->rows[i].row_data == NULL);
-			assert(buf->rows[i].sizes == NULL);
-			assert(buf->rows[i].row == 0);
+			buffer_check_row_empty(&buf->rows[i]);
 			++i;
 			if (i == buf->capacity)
 				i = 0;
@@ -299,6 +300,9 @@ buffer_delete_rows(DBPROC_ROWBUF * buf,	int count)
 	BUFFER_CHECK(buf);
 }
 
+/**
+ * Transfer data from buffer/tds back to client
+ */
 static void
 buffer_transfer_bound_data(DBPROC_ROWBUF *buf, TDS_INT res_type, TDS_INT compute_id, DBPROCESS * dbproc, int idx)
 {
@@ -522,6 +526,9 @@ buffer_add_row(DBPROCESS *dbproc, TDSRESULTINFO *resinfo)
 	return buf->current;
 }
 
+/**
+ * Save current row into row buffer
+ */
 static RETCODE
 buffer_save_row(DBPROCESS *dbproc)
 {

@@ -37,15 +37,27 @@
 #error HAVE_OPENSSL not defines, this file should not be included
 #endif
 
+static inline const BIGNUM*
+rsa_get_n(const RSA *rsa)
+{
+#if HAVE_RSA_GET0_KEY
+	const BIGNUM *n, *e, *d;
+	RSA_get0_key(rsa, &n, &e, &d);
+	return n;
+#else
+	return rsa->n;
+#endif
+}
+
 static void*
 tds5_rsa_encrypt(const void *key, size_t key_len, const void *nonce, size_t nonce_len, const char *pwd, size_t *em_size)
 {
 	RSA *rsa = NULL;
 	BIO *keybio;
 
-	TDS_UCHAR *message = NULL;
+	uint8_t *message = NULL;
 	size_t message_len, pwd_len;
-	TDS_UCHAR *em = NULL;
+	uint8_t *em = NULL;
 
 	int result;
 
@@ -59,13 +71,13 @@ tds5_rsa_encrypt(const void *key, size_t key_len, const void *nonce, size_t nonc
 
 	pwd_len = strlen(pwd);
 	message_len = nonce_len + pwd_len;
-	message = tds_new(TDS_UCHAR, message_len);
+	message = tds_new(uint8_t, message_len);
 	if (!message)
 		goto error;
 	memcpy(message, nonce, nonce_len);
 	memcpy(message + nonce_len, pwd, pwd_len);
 
-	em = tds_new(TDS_UCHAR, BN_num_bytes(rsa->n));
+	em = tds_new(uint8_t, BN_num_bytes(rsa_get_n(rsa)));
 	if (!em)
 		goto error;
 

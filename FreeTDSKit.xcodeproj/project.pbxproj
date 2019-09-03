@@ -12,7 +12,6 @@
 		6587B586144EBF310081A62B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6521F187144E6B1500CBCC36 /* Foundation.framework */; };
 		6587B60F14521A300081A62B /* freetds.conf in Resources */ = {isa = PBXBuildFile; fileRef = 6587B60E14521A300081A62B /* freetds.conf */; };
 		7203D12E1E1E8A8F00DC960E /* cryptohelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 7203D12C1E1E8A8F00DC960E /* cryptohelper.m */; };
-		7203D1741E1EA27300DC960E /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF61D1858A7006A3F33 /* md5.c */; };
 		7203D1751E1EA27300DC960E /* read.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFD1D1858A7006A3F33 /* read.c */; };
 		7203D1761E1EA27300DC960E /* packet.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFA1D1858A7006A3F33 /* packet.c */; };
 		7203D1771E1EA27300DC960E /* write.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360081D1858A7006A3F33 /* write.c */; };
@@ -20,31 +19,25 @@
 		7203D1791E1EA27300DC960E /* dbutil.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603B1D1858F1006A3F33 /* dbutil.c */; };
 		7203D17A1E1EA27300DC960E /* query.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFB1D1858A7006A3F33 /* query.c */; };
 		7203D17B1E1EA27300DC960E /* stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360001D1858A7006A3F33 /* stream.c */; };
-		7203D17C1E1EA27300DC960E /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FED1D1858A7006A3F33 /* dlist.c */; };
-		7203D17D1E1EA27300DC960E /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360031D1858A7006A3F33 /* threadsafe.c */; };
 		7203D17E1E1EA27300DC960E /* dblib.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360381D1858F1006A3F33 /* dblib.c */; };
 		7203D17F1E1EA27300DC960E /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603C1D1858F1006A3F33 /* rpc.c */; };
 		7203D1801E1EA27300DC960E /* cryptohelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 7203D12C1E1E8A8F00DC960E /* cryptohelper.m */; };
 		7203D1811E1EA27300DC960E /* getmac.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEE1D1858A7006A3F33 /* getmac.c */; };
 		7203D1821E1EA27300DC960E /* xact.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603E1D1858F1006A3F33 /* xact.c */; };
-		7203D1831E1EA27300DC960E /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360021D1858A7006A3F33 /* tdsstring.c */; };
 		7203D1841E1EA27300DC960E /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF31D1858A7006A3F33 /* log.c */; };
 		7203D1851E1EA27300DC960E /* random.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFC1D1858A7006A3F33 /* random.c */; };
 		7203D1861E1EA27300DC960E /* sec_negotiate.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFE1D1858A7006A3F33 /* sec_negotiate.c */; };
 		7203D1871E1EA27300DC960E /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FE91D1858A7006A3F33 /* config.c */; };
 		7203D1881E1EA27300DC960E /* sspi.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFF1D1858A7006A3F33 /* sspi.c */; };
 		7203D1891E1EA27300DC960E /* data.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEB1D1858A7006A3F33 /* data.c */; };
-		7203D18A1E1EA27300DC960E /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEC1D1858A7006A3F33 /* des.c */; };
 		7203D18B1E1EA27300DC960E /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360061D1858A7006A3F33 /* util.c */; };
 		7203D18C1E1EA27300DC960E /* tls.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360041D1858A7006A3F33 /* tls.c */; };
 		7203D18D1E1EA27300DC960E /* locale.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF21D1858A7006A3F33 /* locale.c */; };
-		7203D18E1E1EA27300DC960E /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF01D1858A7006A3F33 /* hmac_md5.c */; };
 		7203D18F1E1EA27300DC960E /* bulk.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FE71D1858A7006A3F33 /* bulk.c */; };
 		7203D1901E1EA27300DC960E /* mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF71D1858A7006A3F33 /* mem.c */; };
 		7203D1911E1EA27300DC960E /* token.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360051D1858A7006A3F33 /* token.c */; };
 		7203D1921E1EA27300DC960E /* dbpivot.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603A1D1858F1006A3F33 /* dbpivot.c */; };
 		7203D1931E1EA27300DC960E /* convert.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEA1D1858A7006A3F33 /* convert.c */; };
-		7203D1941E1EA27300DC960E /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF51D1858A7006A3F33 /* md4.c */; };
 		7203D1951E1EA27300DC960E /* gssapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEF1D1858A7006A3F33 /* gssapi.c */; };
 		7203D1961E1EA27300DC960E /* login.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF41D1858A7006A3F33 /* login.c */; };
 		7203D1971E1EA27300DC960E /* vstrbuild.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360071D1858A7006A3F33 /* vstrbuild.c */; };
@@ -59,12 +52,8 @@
 		7203D1A41E1EA27300DC960E /* buffering.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213603F1D1858F1006A3F33 /* buffering.h */; };
 		7203D1A51E1EA27300DC960E /* sec_negotiate_openssl.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600C1D1858A7006A3F33 /* sec_negotiate_openssl.h */; };
 		7203D1A61E1EA27300DC960E /* config.h in Headers */ = {isa = PBXBuildFile; fileRef = 72078E2F1D5A32E9005A3788 /* config.h */; };
-		7203D1A71E1EA27300DC960E /* tds_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600D1D1858A7006A3F33 /* tds_types.h */; };
-		7203D1A81E1EA27300DC960E /* tds_willconvert.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600E1D1858A7006A3F33 /* tds_willconvert.h */; };
-		7203D1A91E1EA27300DC960E /* num_limits.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600A1D1858A7006A3F33 /* num_limits.h */; };
 		7203D1AA1E1EA27300DC960E /* sec_negotiate_gnutls.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600B1D1858A7006A3F33 /* sec_negotiate_gnutls.h */; };
 		7203D1AB1E1EA27300DC960E /* tds.h in Headers */ = {isa = PBXBuildFile; fileRef = 72078E2D1D5A30B2005A3788 /* tds.h */; };
-		7203D1AC1E1EA27300DC960E /* encodings.h in Headers */ = {isa = PBXBuildFile; fileRef = 721360091D1858A7006A3F33 /* encodings.h */; };
 		7203D1AE1E1EA27300DC960E /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6521F18B144E6B1500CBCC36 /* InfoPlist.strings */; };
 		7203D1AF1E1EA27300DC960E /* freetds.conf in Resources */ = {isa = PBXBuildFile; fileRef = 6587B60E14521A300081A62B /* freetds.conf */; };
 		7203D1B71E1EA2C400DC960E /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7203D1B51E1EA2C400DC960E /* libcrypto.a */; };
@@ -80,17 +69,12 @@
 		721360111D1858A7006A3F33 /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FE91D1858A7006A3F33 /* config.c */; };
 		721360121D1858A7006A3F33 /* convert.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEA1D1858A7006A3F33 /* convert.c */; };
 		721360131D1858A7006A3F33 /* data.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEB1D1858A7006A3F33 /* data.c */; };
-		721360141D1858A7006A3F33 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEC1D1858A7006A3F33 /* des.c */; };
-		721360151D1858A7006A3F33 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FED1D1858A7006A3F33 /* dlist.c */; };
 		721360161D1858A7006A3F33 /* getmac.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEE1D1858A7006A3F33 /* getmac.c */; };
 		721360171D1858A7006A3F33 /* gssapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FEF1D1858A7006A3F33 /* gssapi.c */; };
-		721360181D1858A7006A3F33 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF01D1858A7006A3F33 /* hmac_md5.c */; };
 		721360191D1858A7006A3F33 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF11D1858A7006A3F33 /* iconv.c */; };
 		7213601A1D1858A7006A3F33 /* locale.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF21D1858A7006A3F33 /* locale.c */; };
 		7213601B1D1858A7006A3F33 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF31D1858A7006A3F33 /* log.c */; };
 		7213601C1D1858A7006A3F33 /* login.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF41D1858A7006A3F33 /* login.c */; };
-		7213601D1D1858A7006A3F33 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF51D1858A7006A3F33 /* md4.c */; };
-		7213601E1D1858A7006A3F33 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF61D1858A7006A3F33 /* md5.c */; };
 		7213601F1D1858A7006A3F33 /* mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF71D1858A7006A3F33 /* mem.c */; };
 		721360201D1858A7006A3F33 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF81D1858A7006A3F33 /* net.c */; };
 		721360211D1858A7006A3F33 /* numeric.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FF91D1858A7006A3F33 /* numeric.c */; };
@@ -102,19 +86,13 @@
 		721360271D1858A7006A3F33 /* sspi.c in Sources */ = {isa = PBXBuildFile; fileRef = 72135FFF1D1858A7006A3F33 /* sspi.c */; };
 		721360281D1858A7006A3F33 /* stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360001D1858A7006A3F33 /* stream.c */; };
 		721360291D1858A7006A3F33 /* tds_checks.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360011D1858A7006A3F33 /* tds_checks.c */; };
-		7213602A1D1858A7006A3F33 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360021D1858A7006A3F33 /* tdsstring.c */; };
-		7213602B1D1858A7006A3F33 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360031D1858A7006A3F33 /* threadsafe.c */; };
 		7213602C1D1858A7006A3F33 /* tls.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360041D1858A7006A3F33 /* tls.c */; };
 		7213602D1D1858A7006A3F33 /* token.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360051D1858A7006A3F33 /* token.c */; };
 		7213602E1D1858A7006A3F33 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360061D1858A7006A3F33 /* util.c */; };
 		7213602F1D1858A7006A3F33 /* vstrbuild.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360071D1858A7006A3F33 /* vstrbuild.c */; };
 		721360301D1858A7006A3F33 /* write.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360081D1858A7006A3F33 /* write.c */; };
-		721360311D1858A7006A3F33 /* encodings.h in Headers */ = {isa = PBXBuildFile; fileRef = 721360091D1858A7006A3F33 /* encodings.h */; };
-		721360321D1858A7006A3F33 /* num_limits.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600A1D1858A7006A3F33 /* num_limits.h */; };
 		721360331D1858A7006A3F33 /* sec_negotiate_gnutls.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600B1D1858A7006A3F33 /* sec_negotiate_gnutls.h */; };
 		721360341D1858A7006A3F33 /* sec_negotiate_openssl.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600C1D1858A7006A3F33 /* sec_negotiate_openssl.h */; };
-		721360351D1858A7006A3F33 /* tds_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600D1D1858A7006A3F33 /* tds_types.h */; };
-		721360361D1858A7006A3F33 /* tds_willconvert.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213600E1D1858A7006A3F33 /* tds_willconvert.h */; };
 		721360401D1858F1006A3F33 /* bcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360371D1858F1006A3F33 /* bcp.c */; };
 		721360411D1858F1006A3F33 /* dblib.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360381D1858F1006A3F33 /* dblib.c */; };
 		721360421D1858F1006A3F33 /* dbopen.c in Sources */ = {isa = PBXBuildFile; fileRef = 721360391D1858F1006A3F33 /* dbopen.c */; };
@@ -127,6 +105,34 @@
 		7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD11E1FBA8B00359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		72AD134B2316FFB700C87C40 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133D2316FFB700C87C40 /* sleep.c */; };
+		72AD134C2316FFB700C87C40 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133D2316FFB700C87C40 /* sleep.c */; };
+		72AD134D2316FFB700C87C40 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133E2316FFB700C87C40 /* tdsstring.c */; };
+		72AD134E2316FFB700C87C40 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133E2316FFB700C87C40 /* tdsstring.c */; };
+		72AD13512316FFB700C87C40 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13402316FFB700C87C40 /* md5.c */; };
+		72AD13522316FFB700C87C40 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13402316FFB700C87C40 /* md5.c */; };
+		72AD13532316FFB700C87C40 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13412316FFB700C87C40 /* threadsafe.c */; };
+		72AD13542316FFB700C87C40 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13412316FFB700C87C40 /* threadsafe.c */; };
+		72AD13552316FFB700C87C40 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13422316FFB700C87C40 /* dlist.c */; };
+		72AD13562316FFB700C87C40 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13422316FFB700C87C40 /* dlist.c */; };
+		72AD13572316FFB700C87C40 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13432316FFB700C87C40 /* win_mutex.c */; };
+		72AD13582316FFB700C87C40 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13432316FFB700C87C40 /* win_mutex.c */; };
+		72AD13592316FFB700C87C40 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13442316FFB700C87C40 /* bjoern-utf8.c */; };
+		72AD135A2316FFB700C87C40 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13442316FFB700C87C40 /* bjoern-utf8.c */; };
+		72AD135B2316FFB700C87C40 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13452316FFB700C87C40 /* md4.c */; };
+		72AD135C2316FFB700C87C40 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13452316FFB700C87C40 /* md4.c */; };
+		72AD135D2316FFB700C87C40 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13462316FFB700C87C40 /* des.c */; };
+		72AD135E2316FFB700C87C40 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13462316FFB700C87C40 /* des.c */; };
+		72AD135F2316FFB700C87C40 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13472316FFB700C87C40 /* tds_cond.c */; };
+		72AD13602316FFB700C87C40 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13472316FFB700C87C40 /* tds_cond.c */; };
+		72AD13612316FFB700C87C40 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13482316FFB700C87C40 /* getpassarg.c */; };
+		72AD13622316FFB700C87C40 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13482316FFB700C87C40 /* getpassarg.c */; };
+		72AD13632316FFB700C87C40 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13492316FFB700C87C40 /* hmac_md5.c */; };
+		72AD13642316FFB700C87C40 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13492316FFB700C87C40 /* hmac_md5.c */; };
+		72AD13652316FFB700C87C40 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD134A2316FFB700C87C40 /* net.c */; };
+		72AD13662316FFB700C87C40 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD134A2316FFB700C87C40 /* net.c */; };
+		72AD13692317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
+		72AD136A2317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -151,17 +157,12 @@
 		72135FE91D1858A7006A3F33 /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = src/freetds/src/tds/config.c; sourceTree = "<group>"; };
 		72135FEA1D1858A7006A3F33 /* convert.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = convert.c; path = src/freetds/src/tds/convert.c; sourceTree = "<group>"; };
 		72135FEB1D1858A7006A3F33 /* data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = data.c; path = src/freetds/src/tds/data.c; sourceTree = "<group>"; };
-		72135FEC1D1858A7006A3F33 /* des.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = des.c; path = src/freetds/src/tds/des.c; sourceTree = "<group>"; };
-		72135FED1D1858A7006A3F33 /* dlist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dlist.c; path = src/freetds/src/tds/dlist.c; sourceTree = "<group>"; };
 		72135FEE1D1858A7006A3F33 /* getmac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getmac.c; path = src/freetds/src/tds/getmac.c; sourceTree = "<group>"; };
 		72135FEF1D1858A7006A3F33 /* gssapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gssapi.c; path = src/freetds/src/tds/gssapi.c; sourceTree = "<group>"; };
-		72135FF01D1858A7006A3F33 /* hmac_md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hmac_md5.c; path = src/freetds/src/tds/hmac_md5.c; sourceTree = "<group>"; };
 		72135FF11D1858A7006A3F33 /* iconv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = iconv.c; path = src/freetds/src/tds/iconv.c; sourceTree = "<group>"; };
 		72135FF21D1858A7006A3F33 /* locale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = locale.c; path = src/freetds/src/tds/locale.c; sourceTree = "<group>"; };
 		72135FF31D1858A7006A3F33 /* log.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = log.c; path = src/freetds/src/tds/log.c; sourceTree = "<group>"; };
 		72135FF41D1858A7006A3F33 /* login.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = login.c; path = src/freetds/src/tds/login.c; sourceTree = "<group>"; };
-		72135FF51D1858A7006A3F33 /* md4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md4.c; path = src/freetds/src/tds/md4.c; sourceTree = "<group>"; };
-		72135FF61D1858A7006A3F33 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = src/freetds/src/tds/md5.c; sourceTree = "<group>"; };
 		72135FF71D1858A7006A3F33 /* mem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mem.c; path = src/freetds/src/tds/mem.c; sourceTree = "<group>"; };
 		72135FF81D1858A7006A3F33 /* net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = net.c; path = src/freetds/src/tds/net.c; sourceTree = "<group>"; };
 		72135FF91D1858A7006A3F33 /* numeric.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = numeric.c; path = src/freetds/src/tds/numeric.c; sourceTree = "<group>"; };
@@ -173,19 +174,13 @@
 		72135FFF1D1858A7006A3F33 /* sspi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sspi.c; path = src/freetds/src/tds/sspi.c; sourceTree = "<group>"; };
 		721360001D1858A7006A3F33 /* stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stream.c; path = src/freetds/src/tds/stream.c; sourceTree = "<group>"; };
 		721360011D1858A7006A3F33 /* tds_checks.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tds_checks.c; path = src/freetds/src/tds/tds_checks.c; sourceTree = "<group>"; };
-		721360021D1858A7006A3F33 /* tdsstring.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdsstring.c; path = src/freetds/src/tds/tdsstring.c; sourceTree = "<group>"; };
-		721360031D1858A7006A3F33 /* threadsafe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = threadsafe.c; path = src/freetds/src/tds/threadsafe.c; sourceTree = "<group>"; };
 		721360041D1858A7006A3F33 /* tls.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tls.c; path = src/freetds/src/tds/tls.c; sourceTree = "<group>"; };
 		721360051D1858A7006A3F33 /* token.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = token.c; path = src/freetds/src/tds/token.c; sourceTree = "<group>"; };
 		721360061D1858A7006A3F33 /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = util.c; path = src/freetds/src/tds/util.c; sourceTree = "<group>"; };
 		721360071D1858A7006A3F33 /* vstrbuild.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vstrbuild.c; path = src/freetds/src/tds/vstrbuild.c; sourceTree = "<group>"; };
 		721360081D1858A7006A3F33 /* write.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write.c; path = src/freetds/src/tds/write.c; sourceTree = "<group>"; };
-		721360091D1858A7006A3F33 /* encodings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = encodings.h; path = src/freetds/src/tds/encodings.h; sourceTree = "<group>"; };
-		7213600A1D1858A7006A3F33 /* num_limits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = num_limits.h; path = src/freetds/src/tds/num_limits.h; sourceTree = "<group>"; };
 		7213600B1D1858A7006A3F33 /* sec_negotiate_gnutls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sec_negotiate_gnutls.h; path = src/freetds/src/tds/sec_negotiate_gnutls.h; sourceTree = "<group>"; };
 		7213600C1D1858A7006A3F33 /* sec_negotiate_openssl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sec_negotiate_openssl.h; path = src/freetds/src/tds/sec_negotiate_openssl.h; sourceTree = "<group>"; };
-		7213600D1D1858A7006A3F33 /* tds_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_types.h; path = src/freetds/src/tds/tds_types.h; sourceTree = "<group>"; };
-		7213600E1D1858A7006A3F33 /* tds_willconvert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_willconvert.h; path = src/freetds/src/tds/tds_willconvert.h; sourceTree = "<group>"; };
 		721360371D1858F1006A3F33 /* bcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcp.c; path = src/freetds/src/dblib/bcp.c; sourceTree = "<group>"; };
 		721360381D1858F1006A3F33 /* dblib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dblib.c; path = src/freetds/src/dblib/dblib.c; sourceTree = "<group>"; };
 		721360391D1858F1006A3F33 /* dbopen.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dbopen.c; path = src/freetds/src/dblib/dbopen.c; sourceTree = "<group>"; };
@@ -198,6 +193,20 @@
 		724F93511D86F4F400FDFF6B /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../libssl.a; sourceTree = "<group>"; };
 		7291DFB61E1EF66400359D2C /* FreeTDSKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSKit.h; sourceTree = "<group>"; };
 		7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_sysdep_public.h; path = src/freetds/include/tds_sysdep_public.h; sourceTree = "<group>"; };
+		72AD133D2316FFB700C87C40 /* sleep.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sleep.c; path = src/freetds/src/utils/sleep.c; sourceTree = "<group>"; };
+		72AD133E2316FFB700C87C40 /* tdsstring.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdsstring.c; path = src/freetds/src/utils/tdsstring.c; sourceTree = "<group>"; };
+		72AD13402316FFB700C87C40 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = src/freetds/src/utils/md5.c; sourceTree = "<group>"; };
+		72AD13412316FFB700C87C40 /* threadsafe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = threadsafe.c; path = src/freetds/src/utils/threadsafe.c; sourceTree = "<group>"; };
+		72AD13422316FFB700C87C40 /* dlist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dlist.c; path = src/freetds/src/utils/dlist.c; sourceTree = "<group>"; };
+		72AD13432316FFB700C87C40 /* win_mutex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = win_mutex.c; path = src/freetds/src/utils/win_mutex.c; sourceTree = "<group>"; };
+		72AD13442316FFB700C87C40 /* bjoern-utf8.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "bjoern-utf8.c"; path = "src/freetds/src/utils/bjoern-utf8.c"; sourceTree = "<group>"; };
+		72AD13452316FFB700C87C40 /* md4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md4.c; path = src/freetds/src/utils/md4.c; sourceTree = "<group>"; };
+		72AD13462316FFB700C87C40 /* des.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = des.c; path = src/freetds/src/utils/des.c; sourceTree = "<group>"; };
+		72AD13472316FFB700C87C40 /* tds_cond.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tds_cond.c; path = src/freetds/src/utils/tds_cond.c; sourceTree = "<group>"; };
+		72AD13482316FFB700C87C40 /* getpassarg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getpassarg.c; path = src/freetds/src/utils/getpassarg.c; sourceTree = "<group>"; };
+		72AD13492316FFB700C87C40 /* hmac_md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hmac_md5.c; path = src/freetds/src/utils/hmac_md5.c; sourceTree = "<group>"; };
+		72AD134A2316FFB700C87C40 /* net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = net.c; path = src/freetds/src/utils/net.c; sourceTree = "<group>"; };
+		72AD13682317006400C87C40 /* iconv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = iconv.c; path = src/freetds/src/replacements/iconv.c; sourceTree = "<group>"; };
 		72B8CB001D1C4FEA000DE30C /* libcrypto.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcrypto.35.tbd; path = usr/lib/libcrypto.35.tbd; sourceTree = SDKROOT; };
 		72B8CB021D1C4FF0000DE30C /* libssl.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libssl.35.tbd; path = usr/lib/libssl.35.tbd; sourceTree = SDKROOT; };
 		72BDDBED1B2B00F40073F4C9 /* libssl.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.0.9.8.dylib; path = usr/lib/libssl.0.9.8.dylib; sourceTree = SDKROOT; };
@@ -313,8 +322,10 @@
 		6521F197144E6C3100CBCC36 /* Library Source */ = {
 			isa = PBXGroup;
 			children = (
+				72AD13672317004E00C87C40 /* replacements */,
 				6521F1F8144E6D1200CBCC36 /* dblib */,
 				6521F1DE144E6CD600CBCC36 /* tds */,
+				72AD133C2316FF5F00C87C40 /* utils */,
 				7203D1C91E1EC67800DC960E /* include */,
 			);
 			name = "Library Source";
@@ -329,17 +340,12 @@
 				72135FE91D1858A7006A3F33 /* config.c */,
 				72135FEA1D1858A7006A3F33 /* convert.c */,
 				72135FEB1D1858A7006A3F33 /* data.c */,
-				72135FEC1D1858A7006A3F33 /* des.c */,
-				72135FED1D1858A7006A3F33 /* dlist.c */,
 				72135FEE1D1858A7006A3F33 /* getmac.c */,
 				72135FEF1D1858A7006A3F33 /* gssapi.c */,
-				72135FF01D1858A7006A3F33 /* hmac_md5.c */,
 				72135FF11D1858A7006A3F33 /* iconv.c */,
 				72135FF21D1858A7006A3F33 /* locale.c */,
 				72135FF31D1858A7006A3F33 /* log.c */,
 				72135FF41D1858A7006A3F33 /* login.c */,
-				72135FF51D1858A7006A3F33 /* md4.c */,
-				72135FF61D1858A7006A3F33 /* md5.c */,
 				72135FF71D1858A7006A3F33 /* mem.c */,
 				72135FF81D1858A7006A3F33 /* net.c */,
 				72135FF91D1858A7006A3F33 /* numeric.c */,
@@ -351,19 +357,13 @@
 				72135FFF1D1858A7006A3F33 /* sspi.c */,
 				721360001D1858A7006A3F33 /* stream.c */,
 				721360011D1858A7006A3F33 /* tds_checks.c */,
-				721360021D1858A7006A3F33 /* tdsstring.c */,
-				721360031D1858A7006A3F33 /* threadsafe.c */,
 				721360041D1858A7006A3F33 /* tls.c */,
 				721360051D1858A7006A3F33 /* token.c */,
 				721360061D1858A7006A3F33 /* util.c */,
 				721360071D1858A7006A3F33 /* vstrbuild.c */,
 				721360081D1858A7006A3F33 /* write.c */,
-				721360091D1858A7006A3F33 /* encodings.h */,
-				7213600A1D1858A7006A3F33 /* num_limits.h */,
 				7213600B1D1858A7006A3F33 /* sec_negotiate_gnutls.h */,
 				7213600C1D1858A7006A3F33 /* sec_negotiate_openssl.h */,
-				7213600D1D1858A7006A3F33 /* tds_types.h */,
-				7213600E1D1858A7006A3F33 /* tds_willconvert.h */,
 			);
 			name = tds;
 			sourceTree = "<group>";
@@ -409,6 +409,34 @@
 			name = include;
 			sourceTree = "<group>";
 		};
+		72AD133C2316FF5F00C87C40 /* utils */ = {
+			isa = PBXGroup;
+			children = (
+				72AD13442316FFB700C87C40 /* bjoern-utf8.c */,
+				72AD13462316FFB700C87C40 /* des.c */,
+				72AD13422316FFB700C87C40 /* dlist.c */,
+				72AD13482316FFB700C87C40 /* getpassarg.c */,
+				72AD13492316FFB700C87C40 /* hmac_md5.c */,
+				72AD13452316FFB700C87C40 /* md4.c */,
+				72AD13402316FFB700C87C40 /* md5.c */,
+				72AD134A2316FFB700C87C40 /* net.c */,
+				72AD133D2316FFB700C87C40 /* sleep.c */,
+				72AD13472316FFB700C87C40 /* tds_cond.c */,
+				72AD133E2316FFB700C87C40 /* tdsstring.c */,
+				72AD13412316FFB700C87C40 /* threadsafe.c */,
+				72AD13432316FFB700C87C40 /* win_mutex.c */,
+			);
+			name = utils;
+			sourceTree = "<group>";
+		};
+		72AD13672317004E00C87C40 /* replacements */ = {
+			isa = PBXGroup;
+			children = (
+				72AD13682317006400C87C40 /* iconv.c */,
+			);
+			name = replacements;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -422,12 +450,8 @@
 				721360481D1858F1006A3F33 /* buffering.h in Headers */,
 				721360341D1858A7006A3F33 /* sec_negotiate_openssl.h in Headers */,
 				72078E301D5A32E9005A3788 /* config.h in Headers */,
-				721360351D1858A7006A3F33 /* tds_types.h in Headers */,
-				721360361D1858A7006A3F33 /* tds_willconvert.h in Headers */,
-				721360321D1858A7006A3F33 /* num_limits.h in Headers */,
 				721360331D1858A7006A3F33 /* sec_negotiate_gnutls.h in Headers */,
 				72078E2E1D5A30B2005A3788 /* tds.h in Headers */,
-				721360311D1858A7006A3F33 /* encodings.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -441,12 +465,8 @@
 				7203D1A41E1EA27300DC960E /* buffering.h in Headers */,
 				7203D1A51E1EA27300DC960E /* sec_negotiate_openssl.h in Headers */,
 				7203D1A61E1EA27300DC960E /* config.h in Headers */,
-				7203D1A71E1EA27300DC960E /* tds_types.h in Headers */,
-				7203D1A81E1EA27300DC960E /* tds_willconvert.h in Headers */,
-				7203D1A91E1EA27300DC960E /* num_limits.h in Headers */,
 				7203D1AA1E1EA27300DC960E /* sec_negotiate_gnutls.h in Headers */,
 				7203D1AB1E1EA27300DC960E /* tds.h in Headers */,
-				7203D1AC1E1EA27300DC960E /* encodings.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -502,6 +522,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 6521F173144E6B1500CBCC36;
@@ -541,7 +562,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7213601E1D1858A7006A3F33 /* md5.c in Sources */,
 				721360251D1858A7006A3F33 /* read.c in Sources */,
 				721360221D1858A7006A3F33 /* packet.c in Sources */,
 				721360301D1858A7006A3F33 /* write.c in Sources */,
@@ -549,40 +569,48 @@
 				721360441D1858F1006A3F33 /* dbutil.c in Sources */,
 				721360231D1858A7006A3F33 /* query.c in Sources */,
 				721360281D1858A7006A3F33 /* stream.c in Sources */,
-				721360151D1858A7006A3F33 /* dlist.c in Sources */,
-				7213602B1D1858A7006A3F33 /* threadsafe.c in Sources */,
 				721360411D1858F1006A3F33 /* dblib.c in Sources */,
 				721360451D1858F1006A3F33 /* rpc.c in Sources */,
 				7203D12E1E1E8A8F00DC960E /* cryptohelper.m in Sources */,
 				721360161D1858A7006A3F33 /* getmac.c in Sources */,
+				72AD13692317006400C87C40 /* iconv.c in Sources */,
+				72AD135B2316FFB700C87C40 /* md4.c in Sources */,
+				72AD135D2316FFB700C87C40 /* des.c in Sources */,
 				721360471D1858F1006A3F33 /* xact.c in Sources */,
-				7213602A1D1858A7006A3F33 /* tdsstring.c in Sources */,
 				7213601B1D1858A7006A3F33 /* log.c in Sources */,
 				721360241D1858A7006A3F33 /* random.c in Sources */,
 				721360261D1858A7006A3F33 /* sec_negotiate.c in Sources */,
 				721360111D1858A7006A3F33 /* config.c in Sources */,
 				721360271D1858A7006A3F33 /* sspi.c in Sources */,
 				721360131D1858A7006A3F33 /* data.c in Sources */,
-				721360141D1858A7006A3F33 /* des.c in Sources */,
+				72AD135F2316FFB700C87C40 /* tds_cond.c in Sources */,
 				7213602E1D1858A7006A3F33 /* util.c in Sources */,
+				72AD13532316FFB700C87C40 /* threadsafe.c in Sources */,
 				7213602C1D1858A7006A3F33 /* tls.c in Sources */,
 				7213601A1D1858A7006A3F33 /* locale.c in Sources */,
-				721360181D1858A7006A3F33 /* hmac_md5.c in Sources */,
+				72AD134B2316FFB700C87C40 /* sleep.c in Sources */,
 				7213600F1D1858A7006A3F33 /* bulk.c in Sources */,
 				7213601F1D1858A7006A3F33 /* mem.c in Sources */,
+				72AD13612316FFB700C87C40 /* getpassarg.c in Sources */,
 				7213602D1D1858A7006A3F33 /* token.c in Sources */,
 				721360431D1858F1006A3F33 /* dbpivot.c in Sources */,
 				721360121D1858A7006A3F33 /* convert.c in Sources */,
-				7213601D1D1858A7006A3F33 /* md4.c in Sources */,
+				72AD134D2316FFB700C87C40 /* tdsstring.c in Sources */,
 				721360171D1858A7006A3F33 /* gssapi.c in Sources */,
 				7213601C1D1858A7006A3F33 /* login.c in Sources */,
 				7213602F1D1858A7006A3F33 /* vstrbuild.c in Sources */,
 				721360421D1858F1006A3F33 /* dbopen.c in Sources */,
+				72AD13512316FFB700C87C40 /* md5.c in Sources */,
+				72AD13552316FFB700C87C40 /* dlist.c in Sources */,
+				72AD13652316FFB700C87C40 /* net.c in Sources */,
+				72AD13572316FFB700C87C40 /* win_mutex.c in Sources */,
+				72AD13632316FFB700C87C40 /* hmac_md5.c in Sources */,
 				721360211D1858A7006A3F33 /* numeric.c in Sources */,
 				721360201D1858A7006A3F33 /* net.c in Sources */,
 				721360401D1858F1006A3F33 /* bcp.c in Sources */,
 				721360101D1858A7006A3F33 /* challenge.c in Sources */,
 				721360191D1858A7006A3F33 /* iconv.c in Sources */,
+				72AD13592316FFB700C87C40 /* bjoern-utf8.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -590,7 +618,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7203D1741E1EA27300DC960E /* md5.c in Sources */,
 				7203D1751E1EA27300DC960E /* read.c in Sources */,
 				7203D1761E1EA27300DC960E /* packet.c in Sources */,
 				7203D1771E1EA27300DC960E /* write.c in Sources */,
@@ -598,40 +625,48 @@
 				7203D1791E1EA27300DC960E /* dbutil.c in Sources */,
 				7203D17A1E1EA27300DC960E /* query.c in Sources */,
 				7203D17B1E1EA27300DC960E /* stream.c in Sources */,
-				7203D17C1E1EA27300DC960E /* dlist.c in Sources */,
-				7203D17D1E1EA27300DC960E /* threadsafe.c in Sources */,
 				7203D17E1E1EA27300DC960E /* dblib.c in Sources */,
 				7203D17F1E1EA27300DC960E /* rpc.c in Sources */,
 				7203D1801E1EA27300DC960E /* cryptohelper.m in Sources */,
 				7203D1811E1EA27300DC960E /* getmac.c in Sources */,
+				72AD136A2317006400C87C40 /* iconv.c in Sources */,
+				72AD135C2316FFB700C87C40 /* md4.c in Sources */,
+				72AD135E2316FFB700C87C40 /* des.c in Sources */,
 				7203D1821E1EA27300DC960E /* xact.c in Sources */,
-				7203D1831E1EA27300DC960E /* tdsstring.c in Sources */,
 				7203D1841E1EA27300DC960E /* log.c in Sources */,
 				7203D1851E1EA27300DC960E /* random.c in Sources */,
 				7203D1861E1EA27300DC960E /* sec_negotiate.c in Sources */,
 				7203D1871E1EA27300DC960E /* config.c in Sources */,
 				7203D1881E1EA27300DC960E /* sspi.c in Sources */,
 				7203D1891E1EA27300DC960E /* data.c in Sources */,
-				7203D18A1E1EA27300DC960E /* des.c in Sources */,
+				72AD13602316FFB700C87C40 /* tds_cond.c in Sources */,
 				7203D18B1E1EA27300DC960E /* util.c in Sources */,
+				72AD13542316FFB700C87C40 /* threadsafe.c in Sources */,
 				7203D18C1E1EA27300DC960E /* tls.c in Sources */,
 				7203D18D1E1EA27300DC960E /* locale.c in Sources */,
-				7203D18E1E1EA27300DC960E /* hmac_md5.c in Sources */,
+				72AD134C2316FFB700C87C40 /* sleep.c in Sources */,
 				7203D18F1E1EA27300DC960E /* bulk.c in Sources */,
 				7203D1901E1EA27300DC960E /* mem.c in Sources */,
+				72AD13622316FFB700C87C40 /* getpassarg.c in Sources */,
 				7203D1911E1EA27300DC960E /* token.c in Sources */,
 				7203D1921E1EA27300DC960E /* dbpivot.c in Sources */,
 				7203D1931E1EA27300DC960E /* convert.c in Sources */,
-				7203D1941E1EA27300DC960E /* md4.c in Sources */,
+				72AD134E2316FFB700C87C40 /* tdsstring.c in Sources */,
 				7203D1951E1EA27300DC960E /* gssapi.c in Sources */,
 				7203D1961E1EA27300DC960E /* login.c in Sources */,
 				7203D1971E1EA27300DC960E /* vstrbuild.c in Sources */,
 				7203D1981E1EA27300DC960E /* dbopen.c in Sources */,
+				72AD13522316FFB700C87C40 /* md5.c in Sources */,
+				72AD13562316FFB700C87C40 /* dlist.c in Sources */,
+				72AD13662316FFB700C87C40 /* net.c in Sources */,
+				72AD13582316FFB700C87C40 /* win_mutex.c in Sources */,
+				72AD13642316FFB700C87C40 /* hmac_md5.c in Sources */,
 				7203D1991E1EA27300DC960E /* numeric.c in Sources */,
 				7203D19A1E1EA27300DC960E /* net.c in Sources */,
 				7203D19B1E1EA27300DC960E /* bcp.c in Sources */,
 				7203D19C1E1EA27300DC960E /* challenge.c in Sources */,
 				7203D19D1E1EA27300DC960E /* iconv.c in Sources */,
+				72AD135A2316FFB700C87C40 /* bjoern-utf8.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

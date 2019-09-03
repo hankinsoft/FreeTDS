@@ -1,6 +1,8 @@
 /* include/config.h.  Generated from config.h.in by configure.  */
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
+#define _freetds_config_h_
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -22,7 +24,7 @@
 /* #undef ENABLE_EXTRA_CHECKS */
 
 /* Defined if --enable-krb5 used and library detected */
-//#define ENABLE_KRB5 1
+/* #undef ENABLE_KRB5 */
 
 /* Define to enable MARS support */
 /* #undef ENABLE_ODBC_MARS */
@@ -46,14 +48,20 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
 
+/* Define to 1 if you have the `ASN1_STRING_get0_data' function. */
+/* #undef HAVE_ASN1_STRING_GET0_DATA */
+
 /* Define to 1 if you have the `asprintf' function. */
 #define HAVE_ASPRINTF 1
 
 /* Define to 1 if you have the `basename' function. */
 #define HAVE_BASENAME 1
 
+/* Define to 1 if you have the `BIO_get_data' function. */
+/* #undef HAVE_BIO_GET_DATA */
+
 /* Define if you have the clock_gettime function. */
-/* #undef HAVE_CLOCK_GETTIME */
+#define HAVE_CLOCK_GETTIME 1
 
 /* Define to 1 if you have the <com_err.h> header file. */
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -94,6 +102,9 @@
 
 /* Define to 1 if you have the `eventfd' function. */
 /* #undef HAVE_EVENTFD */
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#define HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the `fork' function. */
 #define HAVE_FORK 1
@@ -331,6 +342,9 @@
 /* Define to 1 if you have the <roken.h> header file. */
 /* #undef HAVE_ROKEN_H */
 
+/* Define to 1 if you have the `RSA_get0_key' function. */
+/* #undef HAVE_RSA_GET0_KEY */
+
 /* Define to 1 if you have the `setenv' function. */
 #define HAVE_SETENV 1
 
@@ -399,6 +413,9 @@
 
 /* Define to 1 if you have the `strtok_r' function. */
 #define HAVE_STRTOK_R 1
+
+/* Define to 1 if you have the `strtok_s' function. */
+/* #undef HAVE_STRTOK_S */
 
 /* Define to 1 if `tm_zone' is a member of `struct tm'. */
 #define HAVE_STRUCT_TM_TM_ZONE 1
@@ -517,7 +534,7 @@
 /* #undef HAVE___RECVFROM */
 
 /* Define as const if the declaration of iconv() needs const. */
-#define ICONV_CONST 
+#define ICONV_CONST
 
 /* Define to value of INADDR_NONE if not provided by your system header files.
    */
@@ -542,7 +559,7 @@
 #define PACKAGE_NAME "FreeTDS"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "FreeTDS 1.00.6"
+#define PACKAGE_STRING "FreeTDS 1.2.dev.20190828.sqlpro"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "freetds"
@@ -551,7 +568,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.00.6"
+#define PACKAGE_VERSION "1.2.dev.20190828.sqlpro"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -604,17 +621,8 @@
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
-/* Define to use TDS 4.2 by default */
-/* #undef TDS42 */
-
-/* Define to use TDS 4.6 by default */
-/* #undef TDS46 */
-
 /* Define to use TDS 5.0 by default */
 /* #undef TDS50 */
-
-/* Define to use TDS 7.0 by default */
-/* #undef TDS70 */
 
 /* Define to use TDS 7.1 by default */
 /* #undef TDS71 */
@@ -623,20 +631,16 @@
 /* #undef TDS72 */
 
 /* Define to use TDS 7.3 by default */
-// NOTE: To autodetect, remove this.
-/*#define TDS73 1*/
+/* #undef TDS73 */
 
 /* Define to use TDS 7.4 by default */
 /* #undef TDS74 */
-
-/* Not debugging login */
-#define TDS_DEBUG_LOGIN 0
 
 /* Define to 1 if your compiler supports __attribute__((destructor)). */
 #define TDS_ATTRIBUTE_DESTRUCTOR 1
 
 /* define to constant to use for clock_gettime */
-/* #undef TDS_GETTIMEMILLI_CONST */
+#define TDS_GETTIMEMILLI_CONST CLOCK_MONOTONIC
 
 /* Define if you have pthread with mutex support */
 #define TDS_HAVE_PTHREAD_MUTEX 1
@@ -688,7 +692,7 @@
 
 
 /* Version number of package */
-#define VERSION "1.00.6"
+#define VERSION "1.2.dev.20190828"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

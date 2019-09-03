@@ -20,6 +20,9 @@
 
 #include <config.h>
 
+/* enabled some additional definitions for inet_pton */
+#define _WIN32_WINNT 0x600
+
 #include <stdio.h>
 
 #if HAVE_ERRNO_H
@@ -51,7 +54,7 @@
 #endif
 
 #include <freetds/tds.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/tls.h>
 #include <freetds/alloca.h>
 #include "replacements.h"
@@ -71,10 +74,38 @@
 #define SSL_PUSH_ARGS gnutls_transport_ptr_t ptr, const void *data, size_t len
 #define SSL_PTR ptr
 #else
+
+/* some compatibility layer */
+#if !HAVE_BIO_GET_DATA
+static inline void
+BIO_set_init(BIO *b, int init)
+{
+	b->init = init;
+}
+
+static inline void
+BIO_set_data(BIO *b, void *ptr)
+{
+	b->ptr = ptr;
+}
+
+static inline void *
+BIO_get_data(const BIO *b)
+{
+	return b->ptr;
+}
+#define TLS_client_method SSLv23_client_method
+#define TLS_ST_OK SSL_ST_OK
+#endif
+
 #define SSL_RET int
 #define SSL_PULL_ARGS BIO *bio, char *data, int len
 #define SSL_PUSH_ARGS BIO *bio, const char *data, int len
-#define SSL_PTR bio->ptr
+#define SSL_PTR BIO_get_data(bio)
+#endif
+
+#if !HAVE_ASN1_STRING_GET0_DATA
+#define ASN1_STRING_get0_data(x) ASN1_STRING_data(x)
 #endif
 
 static SSL_RET
@@ -482,7 +513,10 @@ tds_ssl_init(TDSSOCKET *tds)
 	gnutls_set_default_priority(session);
 
 	/* ... but overwrite some */
-	ret = gnutls_priority_set_direct (session, "NORMAL:%COMPAT:-VERS-SSL3.0", NULL);
+	if (tds->login && tds->login->enable_tls_v1)
+		ret = gnutls_priority_set_direct(session, "NORMAL:%COMPAT:-VERS-SSL3.0", NULL);
+	else
+		ret = gnutls_priority_set_direct(session, "NORMAL:%COMPAT:-VERS-SSL3.0:-VERS-TLS1.0", NULL);
 	if (ret != 0)
 		goto cleanup;
 
@@ -548,12 +582,8 @@ tds_ssl_deinit(TDSCONNECTION *conn)
 static long
 tds_ssl_ctrl_login(BIO *b, int cmd, long num, void *ptr)
 {
-	TDSSOCKET *tds = (TDSSOCKET *) b->ptr;
-
 	switch (cmd) {
 	case BIO_CTRL_FLUSH:
-		if (tds->out_pos > 8)
-			tds_flush_packet(tds);
 		return 1;
 	}
 	return 0;
@@ -566,7 +596,8 @@ tds_ssl_free(BIO *a)
 	return 1;
 }
 
-static BIO_METHOD tds_method_login =
+#if OPENSSL_VERSION_NUMBER < 0x1010000FL || defined(LIBRESSL_VERSION_NUMBER)
+static BIO_METHOD tds_method_login[1] = {
 {
 	BIO_TYPE_MEM,
 	"tds",
@@ -578,9 +609,9 @@ static BIO_METHOD tds_method_login =
 	NULL,
 	tds_ssl_free,
 	NULL,
-};
+}};
 
-static BIO_METHOD tds_method =
+static BIO_METHOD tds_method[1] = {
 {
 	BIO_TYPE_MEM,
 	"tds",
@@ -592,8 +623,107 @@ static BIO_METHOD tds_method =
 	NULL,
 	tds_ssl_free,
 	NULL,
-};
+}};
 
+static inline void
+tds_init_ssl_methods(void)
+{
+}
+#else
+static BIO_METHOD *tds_method_login;
+static BIO_METHOD *tds_method;
+
+static void
+tds_init_ssl_methods(void)
+{
+	BIO_METHOD *meth;
+
+	tds_method_login = meth = BIO_meth_new(BIO_TYPE_MEM, "tds");
+	BIO_meth_set_write(meth, tds_push_func_login);
+	BIO_meth_set_read(meth, tds_pull_func_login);
+	BIO_meth_set_ctrl(meth, tds_ssl_ctrl_login);
+	BIO_meth_set_destroy(meth, tds_ssl_free);
+
+	tds_method = meth = BIO_meth_new(BIO_TYPE_MEM, "tds");
+	BIO_meth_set_write(meth, tds_push_func);
+	BIO_meth_set_read(meth, tds_pull_func);
+	BIO_meth_set_destroy(meth, tds_ssl_free);
+}
+
+#  ifdef TDS_ATTRIBUTE_DESTRUCTOR
+static void __attribute__((destructor))
+tds_deinit_openssl_methods(void)
+{
+	BIO_meth_free(tds_method_login);
+	BIO_meth_free(tds_method);
+}
+#  endif
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x1010000FL || defined(LIBRESSL_VERSION_NUMBER)
+static tds_mutex *openssl_locks;
+
+static void
+openssl_locking_callback(int mode, int type, const char *file, int line)
+{
+	if (mode & CRYPTO_LOCK)
+		tds_mutex_lock(&openssl_locks[type]);
+	else
+		tds_mutex_unlock(&openssl_locks[type]);
+}
+
+static void
+tds_init_openssl_thread(void)
+{
+	int i, n = CRYPTO_num_locks();
+
+	/* if already set do not overwrite,
+	 * application or another library took care of */
+	if (CRYPTO_get_locking_callback())
+		return;
+
+	openssl_locks = tds_new(tds_mutex, n);
+	for (i=0; i < n; ++i)
+		tds_mutex_init(&openssl_locks[i]);
+
+	/* read back in the attempt to avoid race conditions
+	 * this is not safe but there are no race free ways */
+	if (CRYPTO_get_locking_callback() == NULL)
+		CRYPTO_set_locking_callback(openssl_locking_callback);
+	if (CRYPTO_get_locking_callback() == openssl_locking_callback)
+		return;
+
+	for (i=0; i < n; ++i)
+		tds_mutex_free(&openssl_locks[i]);
+	free(openssl_locks);
+	openssl_locks = NULL;
+}
+
+#ifdef TDS_ATTRIBUTE_DESTRUCTOR
+static void __attribute__((destructor))
+tds_deinit_openssl(void)
+{
+	int i, n;
+
+	if (!tls_initialized
+	    || CRYPTO_get_locking_callback() != openssl_locking_callback)
+		return;
+
+	CRYPTO_set_locking_callback(NULL);
+	n = CRYPTO_num_locks();
+	for (i=0; i < n; ++i)
+		tds_mutex_free(&openssl_locks[i]);
+	free(openssl_locks);
+	openssl_locks = NULL;
+}
+#endif
+
+#else
+static inline void
+tds_init_openssl_thread(void)
+{
+}
+#endif
 
 static SSL_CTX *
 tds_init_openssl(void)
@@ -604,11 +734,13 @@ tds_init_openssl(void)
 		tds_mutex_lock(&tls_mutex);
 		if (!tls_initialized) {
 			SSL_library_init();
+			tds_init_openssl_thread();
+			tds_init_ssl_methods();
 			tls_initialized = 1;
 		}
 		tds_mutex_unlock(&tls_mutex);
 	}
-	meth = TLSv1_client_method ();
+	meth = TLS_client_method();
 	if (meth == NULL)
 		return NULL;
 	return SSL_CTX_new (meth);
@@ -699,7 +831,7 @@ check_name_match(ASN1_STRING *name, const char *hostname)
 
 	tdsdump_log(TDS_DBG_INFO1, "Got name %s\n", name_utf8);
 	ret = 0;
-	if (strlen(name_utf8) == name_len && check_wildcard(name_utf8, hostname) == 0)
+	if (strlen(name_utf8) == name_len && check_wildcard(name_utf8, hostname))
 		ret = 1;
 	OPENSSL_free(name_utf8);
 	return ret;
@@ -744,7 +876,7 @@ check_alt_names(X509 *cert, const char *hostname)
 		if (!name)
 			continue;
 
-		altptr = (const char *) ASN1_STRING_data(name->d.ia5);
+		altptr = (const char *) ASN1_STRING_get0_data(name->d.ia5);
 		altlen = (size_t) ASN1_STRING_length(name->d.ia5);
 
 		if (name->type == GEN_DNS && ip_size == 0) {
@@ -799,20 +931,17 @@ check_hostname(X509 *cert, const char *hostname)
 int
 tds_ssl_init(TDSSOCKET *tds)
 {
-#define OPENSSL_CIPHERS \
-	"ECDHE-ECDSA-AES256-SHA ECDHE-ECDSA-AES128-SHA " \
-	"ECDHE-RSA-AES256-SHA ECDHE-RSA-AES128-SHA " \
-	"DHE-RSA-AES256-SHA DHE-RSA-AES128-SHA " \
-	"AES256-SHA AES128-SHA " \
-	"DES-CBC3-SHA DHE-DSS-AES256-SHA " \
-	"DHE-DSS-AES128-SHA EDH-DSS-DES-CBC3-SHA"
+#define DEFAULT_OPENSSL_CTX_OPTIONS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1)
+#define DEFAULT_OPENSSL_CIPHERS "HIGH:!SSLv2:!aNULL:-DH"
 
 	SSL *con;
 	SSL_CTX *ctx;
 	BIO *b, *b2;
 
-	int ret;
+	int ret, connect_ret;
 	const char *tls_msg;
+
+	unsigned long ctx_options = DEFAULT_OPENSSL_CTX_OPTIONS;
 
 	con = NULL;
 	b = NULL;
@@ -827,6 +956,10 @@ tds_ssl_init(TDSSOCKET *tds)
 	ctx = tds_init_openssl();
 	if (!ctx)
 		goto cleanup;
+
+	if (tds->login && tds->login->enable_tls_v1)
+		ctx_options &= ~SSL_OP_NO_TLSv1;
+	SSL_CTX_set_options(ctx, ctx_options);
 
 	if (!tds_dstr_isempty(&tds->login->cafile)) {
 		tls_msg = "loading CA file";
@@ -857,24 +990,28 @@ tds_ssl_init(TDSSOCKET *tds)
 		goto cleanup;
 
 	tls_msg = "creating bio";
-	b = BIO_new(&tds_method_login);
+	b = BIO_new(tds_method_login);
 	if (!b)
 		goto cleanup;
 
-	b2 = BIO_new(&tds_method);
+	b2 = BIO_new(tds_method);
 	if (!b2)
 		goto cleanup;
 
-	b->shutdown=1;
-	b->init=1;
-	b->num= -1;
-	b->ptr = tds;
+	BIO_set_init(b, 1);
+	BIO_set_data(b, tds);
 	BIO_set_conn_hostname(b, tds_dstr_cstr(&tds->login->server_host_name));
 	SSL_set_bio(con, b, b);
 	b = NULL;
 
-	/* use priorities... */
-	SSL_set_cipher_list(con, OPENSSL_CIPHERS);
+	/* use default priorities unless overridden by openssl ciphers setting in freetds.conf file... */
+	if (!tds_dstr_isempty(&tds->login->openssl_ciphers)) {
+		tdsdump_log(TDS_DBG_INFO1, "setting custom openssl cipher to:%s\n", tds_dstr_cstr(&tds->login->openssl_ciphers));
+		SSL_set_cipher_list(con, tds_dstr_cstr(&tds->login->openssl_ciphers) );
+	} else {
+		tdsdump_log(TDS_DBG_INFO1, "setting default openssl cipher to:%s\n", DEFAULT_OPENSSL_CIPHERS );
+		SSL_set_cipher_list(con, DEFAULT_OPENSSL_CIPHERS);
+	}
 
 #ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
 	/* this disable a security improvement but allow connection... */
@@ -883,10 +1020,19 @@ tds_ssl_init(TDSSOCKET *tds)
 
 	/* Perform the TLS handshake */
 	tls_msg = "handshake";
+	ERR_clear_error();
 	SSL_set_connect_state(con);
-	ret = SSL_connect(con) != 1 || con->state != SSL_ST_OK;
-	if (ret != 0)
+	connect_ret = SSL_connect(con);
+	ret = connect_ret != 1 || SSL_get_state(con) != TLS_ST_OK;
+	if (ret != 0) {
+		tdsdump_log(TDS_DBG_ERROR, "handshake failed with %d %d %d\n",
+			    connect_ret, SSL_get_state(con), SSL_get_error(con, connect_ret));
 		goto cleanup;
+	}
+
+	/* flush pending data */
+	if (tds->out_pos > 8)
+		tds_flush_packet(tds);
 
 	/* check certificate hostname */
 	if (!tds_dstr_isempty(&tds->login->cafile) && tds->login->check_ssl_hostname) {
@@ -896,14 +1042,13 @@ tds_ssl_init(TDSSOCKET *tds)
 		tls_msg = "checking hostname";
 		if (!cert || !check_hostname(cert, tds_dstr_cstr(&tds->login->server_host_name)))
 			goto cleanup;
+		X509_free(cert);
 	}
 
 	tdsdump_log(TDS_DBG_INFO1, "handshake succeeded!!\n");
 
-	b2->shutdown = 1;
-	b2->init = 1;
-	b2->num = -1;
-	b2->ptr = tds->conn;
+	BIO_set_init(b2, 1);
+	BIO_set_data(b2, tds->conn);
 	SSL_set_bio(con, b2, b2);
 
 	tds->conn->tls_session = con;
@@ -930,11 +1075,11 @@ tds_ssl_deinit(TDSCONNECTION *conn)
 {
 	if (conn->tls_session) {
 		/* NOTE do not call SSL_shutdown here */
-		SSL_free(conn->tls_session);
+		SSL_free((SSL *) conn->tls_session);
 		conn->tls_session = NULL;
 	}
 	if (conn->tls_ctx) {
-		SSL_CTX_free(conn->tls_ctx);
+		SSL_CTX_free((SSL_CTX *) conn->tls_ctx);
 		conn->tls_ctx = NULL;
 	}
 }

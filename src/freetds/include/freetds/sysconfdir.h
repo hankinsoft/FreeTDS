@@ -1,1 +1,1 @@
-#define FREETDS_SYSCONFDIR "/usr/local/Cellar/freetds/1.00/etc"
+#define FREETDS_SYSCONFDIR "/usr/local/etc"

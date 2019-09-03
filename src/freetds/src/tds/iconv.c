@@ -38,6 +38,8 @@
 
 #include <freetds/tds.h>
 #include <freetds/iconv.h>
+#include <freetds/bool.h>
+#include <freetds/bytes.h>
 #if HAVE_ICONV
 #include <iconv.h>
 #endif
@@ -46,7 +48,7 @@
 				(charset)->min_bytes_per_char : 0 )
 
 
-static int collate2charset(int sql_collate, int lcid);
+static int collate2charset(TDSCONNECTION * conn, TDS_UCHAR collate[5]);
 static size_t skip_one_input_sequence(iconv_t cd, const TDS_ENCODING * charset, const char **input, size_t * input_size);
 static int tds_iconv_info_init(TDSICONV * char_conv, int client_canonic, int server_canonic);
 static int tds_iconv_init(void);
@@ -324,6 +326,10 @@ tds_iconv_open(TDSCONNECTION * conn, const char *charset, int use_utf16)
 
 	tdsdump_log(TDS_DBG_FUNC, "tds_iconv_open(%p, %s)\n", conn, charset);
 
+	/* TDS 5.0 support only UTF-16 encodings */
+	if (IS_TDS50(conn))
+		use_utf16 = true;
+
 	/* initialize */
 	if (!iconv_initialized) {
 		if ((ret = tds_iconv_init()) > 0) {
@@ -553,11 +559,11 @@ tds_iconv(TDSSOCKET * tds, TDSICONV * conv, TDS_ICONV_DIRECTION io,
 	iconv_t error_cd = invalid;
 
 	char quest_mark[] = "?";	/* best to leave non-const; implementations vary */
-	ICONV_CONST char *pquest_mark = quest_mark;
+	ICONV_CONST char *pquest_mark;
 	size_t lquest_mark;
 	size_t irreversible;
 	size_t one_character;
-	int eilseq_raised = 0;
+	bool eilseq_raised = false;
 	int conv_errno;
 	/* cast away const-ness */
 	TDS_ERRNO_MESSAGE_FLAGS *suppress = (TDS_ERRNO_MESSAGE_FLAGS*) &conv->suppress;
@@ -625,7 +631,7 @@ tds_iconv(TDSSOCKET * tds, TDSICONV * conv, TDS_ICONV_DIRECTION io,
 		conv_errno = errno;
 
 		if (conv_errno == EILSEQ)
-			eilseq_raised = 1;
+			eilseq_raised = true;
 
 		if (conv_errno != EILSEQ || io != to_client || !inbuf)
 			break;
@@ -804,9 +810,9 @@ tds_srv_charset_changed(TDSCONNECTION * conn, const char *charset)
 
 /* change singlebyte conversions according to server */
 void
-tds7_srv_charset_changed(TDSCONNECTION * conn, int sql_collate, int lcid)
+tds7_srv_charset_changed(TDSCONNECTION * conn, TDS_UCHAR collation[5])
 {
-	tds_srv_charset_changed_num(conn, collate2charset(sql_collate, lcid));
+	tds_srv_charset_changed_num(conn, collate2charset(conn, collation));
 }
 
 /**
@@ -828,13 +834,8 @@ skip_one_input_sequence(iconv_t cd, const TDS_ENCODING * charset, const char **i
 
 
 	/* usually fixed size and UTF-8 do not have state, so do not reset it */
-	if (charsize) {
-		if (charsize > *input_size)
-			return 0;
-		*input += charsize;
-		*input_size -= charsize;
-		return charsize;
-	}
+	if (charsize)
+		goto skip_charsize;
 
 	if (0 == strcmp(charset->name, "UTF-8")) {
 		/*
@@ -851,11 +852,7 @@ skip_one_input_sequence(iconv_t cd, const TDS_ENCODING * charset, const char **i
 		do {
 			++charsize;
 		} while ((c <<= 1) & 0x80);
-		if (charsize > *input_size)
-			return 0;
-		*input += charsize;
-		*input_size -= charsize;
-		return charsize;
+		goto skip_charsize;
 	}
 
 	/* handle state encoding */
@@ -905,7 +902,20 @@ skip_one_input_sequence(iconv_t cd, const TDS_ENCODING * charset, const char **i
 
 	tds_sys_iconv_close(cd2);
 
-	return l;
+	if (l != 0)
+		return l;
+
+	/* last blindly attempt, skip minimum bytes */
+	charsize = charset->min_bytes_per_char;
+
+	/* fall through */
+
+skip_charsize:
+	if (charsize > *input_size)
+		return 0;
+	*input += charsize;
+	*input_size -= charsize;
+	return charsize;
 }
 
 static int
@@ -959,14 +969,16 @@ tds_canonical_charset_name(const char *charset_name)
 }
 
 static int
-collate2charset(int sql_collate, int lcid)
+collate2charset(TDSCONNECTION * conn, TDS_UCHAR collate[5])
 {
+	int cp = 0;
+	const int sql_collate = collate[4];
+	const int lcid = TDS_GET_UA2LE(collate);
+
 	/*
 	 * The table from the MSQLServer reference "Windows Collation Designators" 
 	 * and from " NLS Information for Microsoft Windows XP"
 	 */
-
-	int cp = 0;
 
 	switch (sql_collate) {
 	case 30:		/* SQL_Latin1_General_CP437_BIN */
@@ -1014,7 +1026,7 @@ collate2charset(int sql_collate, int lcid)
 		return TDS_CHARSET_CP1257;
 	}
 
-	switch (lcid & 0xffff) {
+	switch (lcid) {
 	case 0x405:
 	case 0x40e:		/* 0x1040e */
 	case 0x415:
@@ -1024,7 +1036,7 @@ collate2charset(int sql_collate, int lcid)
 	case 0x41c:
 	case 0x424:
 	case 0x442:
-		/* case 0x81a: seem wrong in XP table TODO check */
+	case 0x81a:
 	case 0x104e:		/* ?? */
 	case 0x141a:
 		cp = TDS_CHARSET_CP1250;
@@ -1038,10 +1050,12 @@ collate2charset(int sql_collate, int lcid)
 	case 0x440:
 	case 0x444:
 	case 0x450:
-	case 0x81a:		/* ?? */
 	case 0x82c:
 	case 0x843:
 	case 0xc1a:
+	case 0x46d:
+	case 0x201a:
+	case 0x485:
 		cp = TDS_CHARSET_CP1251;
 		break;
 	case 0x1007:
@@ -1057,7 +1071,6 @@ collate2charset(int sql_collate, int lcid)
 	case 0x180c:
 	case 0x1c09:
 	case 0x1c0a:
-	case 0x201a:
 	case 0x2009:
 	case 0x200a:
 	case 0x2409:
@@ -1105,8 +1118,6 @@ collate2charset(int sql_collate, int lcid)
 	case 0x440a:
 	case 0x441:
 	case 0x456:
-	case 0x46d:
-	case 0x485:
 	case 0x480a:
 	case 0x4c0a:
 	case 0x500a:
@@ -1178,7 +1189,7 @@ collate2charset(int sql_collate, int lcid)
 		break;
 	case 0x1004:
 	case 0x804:		/* 0x20804 */
-		cp = TDS_CHARSET_CP936;
+		cp = TDS_CHARSET_GB18030;
 		break;
 	case 0x412:		/* 0x10412 */
 		cp = TDS_CHARSET_CP949;
@@ -1201,9 +1212,7 @@ collate2charset(int sql_collate, int lcid)
 TDSICONV *
 tds_iconv_from_collate(TDSCONNECTION * conn, TDS_UCHAR collate[5])
 {
-	const int sql_collate = collate[4];
-	const int lcid = collate[1] * 256 + collate[0];
-	int canonic_charset = collate2charset(sql_collate, lcid);
+	int canonic_charset = collate2charset(conn, collate);
 
 	/* same as client (usually this is true, so this improve performance) ? */
 	if (conn->char_convs[client2server_chardata]->to.charset.canonic == canonic_charset)

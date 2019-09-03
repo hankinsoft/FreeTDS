@@ -5,9 +5,6 @@
 
 #include "common.h"
 
-int failed = 0;
-
-
 int
 main(int argc, char **argv)
 {
@@ -21,7 +18,7 @@ main(int argc, char **argv)
 	set_malloc_options();
 
 	read_login_info(argc, argv);
-	fprintf(stdout, "Starting %s\n", argv[0]);
+	printf("Starting %s\n", argv[0]);
 
 	/* Fortify_EnterScope(); */
 	dbinit();
@@ -29,28 +26,28 @@ main(int argc, char **argv)
 	dberrhandle(syb_err_handler);
 	dbmsghandle(syb_msg_handler);
 
-	fprintf(stdout, "About to logon\n");
+	printf("About to logon\n");
 
 	login = dblogin();
 	DBSETLPWD(login, PASSWORD);
 	DBSETLUSER(login, USER);
 	DBSETLAPP(login, "t0015");
 
-	fprintf(stdout, "About to open\n");
+	printf("About to open\n");
 
 	dbproc = dbopen(login, SERVER);
 	if (strlen(DATABASE))
 		dbuse(dbproc, DATABASE);
 	dbloginfree(login);
 
-	fprintf(stdout, "creating table\n");
+	printf("creating table\n");
 	sql_cmd(dbproc);
 	dbsqlexec(dbproc);
 	while (dbresults(dbproc) != NO_MORE_RESULTS) {
 		/* nop */
 	}
 
-	fprintf(stdout, "insert\n");
+	printf("insert\n");
 	for (i = 0; i < rows_to_add; i++) {
 		sql_cmd(dbproc);
 		dbsqlexec(dbproc);
@@ -59,13 +56,12 @@ main(int argc, char **argv)
 		}
 	}
 
-	fprintf(stdout, "select\n");
+	printf("select\n");
 	sql_cmd(dbproc);
 	dbsqlexec(dbproc);
 
 	if (dbresults(dbproc) != SUCCEED) {
-		failed = 1;
-		fprintf(stdout, "Was expecting a result set.");
+		fprintf(stderr, "Was expecting a result set.");
 		exit(1);
 	}
 
@@ -73,41 +69,35 @@ main(int argc, char **argv)
 		printf("col %d is %s\n", i, dbcolname(dbproc, i));
 
 	if (SUCCEED != dbbind(dbproc, 1, INTBIND, 0, (BYTE *) & testint)) {
-		failed = 1;
 		fprintf(stderr, "Had problem with bind\n");
 		abort();
 	}
 	if (SUCCEED != dbbind(dbproc, 2, STRINGBIND, 0, (BYTE *) teststr)) {
-		failed = 1;
 		fprintf(stderr, "Had problem with bind\n");
 		abort();
 	}
 
 	if (REG_ROW != dbnextrow(dbproc)) {
-		failed = 1;
 		fprintf(stderr, "Failed.  Expected a row\n");
 		exit(1);
 	}
 
 	dbcancel(dbproc);
 
-	fprintf(stdout, "select 2\n");
+	printf("select 2\n");
 	sql_cmd(dbproc);
 	dbsqlexec(dbproc);
 
 	if (dbresults(dbproc) != SUCCEED) {
-		failed = 1;
-		fprintf(stdout, "Was expecting a result set.");
+		fprintf(stderr, "Was expecting a result set.");
 		exit(1);
 	}
 
 	if (SUCCEED != dbbind(dbproc, 1, INTBIND, 0, (BYTE *) & testint)) {
-		failed = 1;
 		fprintf(stderr, "Had problem with bind\n");
 		abort();
 	}
 	if (SUCCEED != dbbind(dbproc, 2, STRINGBIND, 0, (BYTE *) teststr)) {
-		failed = 1;
 		fprintf(stderr, "Had problem with bind\n");
 		abort();
 	}
@@ -118,31 +108,27 @@ main(int argc, char **argv)
 		sprintf(expected, "row %03d", i);
 
 		if (REG_ROW != dbnextrow(dbproc)) {
-			failed = 1;
 			fprintf(stderr, "Failed.  Expected a row\n");
 			exit(1);
 		}
 		if (testint != i) {
-			failed = 1;
 			fprintf(stderr, "Failed.  Expected i to be %d, was %d\n", i, (int) testint);
 			abort();
 		}
 		if (0 != strncmp(teststr, expected, strlen(expected))) {
-			failed = 1;
-			fprintf(stdout, "Failed.  Expected s to be |%s|, was |%s|\n", expected, teststr);
+			fprintf(stderr, "Failed.  Expected s to be |%s|, was |%s|\n", expected, teststr);
 			abort();
 		}
 		printf("Read a row of data -> %d %s\n", (int) testint, teststr);
 	}
 
 	if (dbnextrow(dbproc) != NO_MORE_ROWS) {
-		failed = 1;
 		fprintf(stderr, "Was expecting no more rows\n");
 		exit(1);
 	}
 
 	dbexit();
 
-	fprintf(stdout, "%s %s\n", __FILE__, (failed ? "failed!" : "OK"));
-	return failed ? 1 : 0;
+	printf("%s %s\n", __FILE__, "OK");
+	return 0;
 }
