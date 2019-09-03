@@ -893,6 +893,7 @@
 					"$(PROJECT_DIR)/libs/iOS",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hankinsoft.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = FreeTDSKit;
 				SDKROOT = iphoneos;
