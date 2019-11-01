@@ -61,7 +61,7 @@
 /* #undef HAVE_BIO_GET_DATA */
 
 /* Define if you have the clock_gettime function. */
-#define HAVE_CLOCK_GETTIME 1
+/* #undef HAVE_CLOCK_GETTIME */
 
 /* Define to 1 if you have the <com_err.h> header file. */
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
