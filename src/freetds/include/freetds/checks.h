@@ -36,6 +36,7 @@
 #define CHECK_PARAMINFO_EXTRA(res_info)   CHECK_STRUCT_EXTRA(tds_check_resultinfo_extra,res_info)
 #define CHECK_CURSOR_EXTRA(cursor)        CHECK_STRUCT_EXTRA(tds_check_cursor_extra,cursor)
 #define CHECK_DYNAMIC_EXTRA(dynamic)      CHECK_STRUCT_EXTRA(tds_check_dynamic_extra,dynamic)
+#define CHECK_FREEZE_EXTRA(freeze)        CHECK_STRUCT_EXTRA(tds_check_freeze_extra,freeze)
 #define CHECK_CONN_EXTRA(conn)
 
 #if ENABLE_EXTRA_CHECKS
@@ -46,6 +47,7 @@ void tds_check_column_extra(const TDSCOLUMN * column);
 void tds_check_resultinfo_extra(const TDSRESULTINFO * res_info);
 void tds_check_cursor_extra(const TDSCURSOR * cursor);
 void tds_check_dynamic_extra(const TDSDYNAMIC * dynamic);
+void tds_check_freeze_extra(const TDSFREEZE * freeze);
 #endif
 
 #if defined(HAVE_VALGRIND_MEMCHECK_H) && ENABLE_EXTRA_CHECKS
@@ -53,6 +55,14 @@ void tds_check_dynamic_extra(const TDSDYNAMIC * dynamic);
 #  define TDS_MARK_UNDEFINED(ptr, len) VALGRIND_MAKE_MEM_UNDEFINED(ptr, len)
 #else
 #  define TDS_MARK_UNDEFINED(ptr, len) do {} while(0)
+#endif
+
+#if ENABLE_EXTRA_CHECKS
+void tds_extra_assert_check(const char *fn, int line, int cond, const char *cond_str);
+#  define tds_extra_assert(cond) \
+	tds_extra_assert_check(__FILE__, __LINE__, cond, #cond)
+#else
+#  define tds_extra_assert(cond) do { } while(0)
 #endif
 
 #include <freetds/popvis.h>

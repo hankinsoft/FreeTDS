@@ -1692,7 +1692,7 @@ tds_convert_flt8(const TDS_FLOAT* src, int desttype, CONV_RESULT * cr)
 		break;
 	case SYBNUMERIC:
 	case SYBDECIMAL:
-		sprintf(tmp_str, "%.16g", the_value);
+		sprintf(tmp_str, "%.*f", cr->n.scale, the_value);
 		return stringz_to_numeric(tmp_str, cr);
 		break;
 		/* not allowed */
@@ -1875,7 +1875,7 @@ tds_convert_to_binary(int srctype, const TDS_CHAR * src, TDS_UINT srclen, int de
  * @return length of result or TDS_CONVERT_* failure code on failure. All TDS_CONVERT_* constants are <0.
  */
 TDS_INT
-tds_convert(const TDSCONTEXT * tds_ctx, int srctype, const TDS_CHAR * src, TDS_UINT srclen, int desttype, CONV_RESULT * cr)
+tds_convert(const TDSCONTEXT *tds_ctx, int srctype, const void *src, TDS_UINT srclen, int desttype, CONV_RESULT *cr)
 {
 	TDS_INT length = 0;
 

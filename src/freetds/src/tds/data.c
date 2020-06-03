@@ -281,7 +281,7 @@ tds_set_param_type(TDSCONNECTION * conn, TDSCOLUMN * curcol, TDS_SERVER_TYPE typ
 	}
 	tds_set_column_type(conn, curcol, type);
 
-	if (is_collate_type(type)) {
+	if (is_collate_type(type) || is_char_type(type)) {
 		curcol->char_conv = conn->char_convs[is_unicode_type(type) ? client2ucs2 : client2server_chardata];
 		memcpy(curcol->column_collation, conn->collation, sizeof(conn->collation));
 	}
@@ -375,6 +375,8 @@ tds_get_cardinal_type(TDS_SERVER_TYPE datatype, int usertype)
 			return SYBTEXT;
 		}
 		break;
+	case SYBMSXML:
+		return SYBLONGCHAR;
 	default:
 		break;
 	}
@@ -577,7 +579,7 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 
 	type = (TDS_SERVER_TYPE) tds_get_byte(tds);
 	info_len = tds_get_byte(tds);
-	if (!is_tds_type_valid(type))
+	if (!is_variant_inner_type(type))
 		goto error_type;
 	v = (TDSVARIANT*) curcol->column_data;
 	v->type = type;
@@ -689,6 +691,7 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 #endif
 	}
 	v->data_len = colsize;
+	CHECK_COLUMN_EXTRA(curcol);
 	return TDS_SUCCESS;
 
 error_type:
@@ -900,34 +903,6 @@ tds_generic_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 		tds_put_n(tds, tds->conn->collation, 5);
 
 	return TDS_SUCCESS;
-}
-
-unsigned
-tds_generic_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	unsigned len = col->column_varint_size;
-
-	CHECK_TDS_EXTRA(tds);
-	CHECK_COLUMN_EXTRA(col);
-
-	switch (col->column_varint_size) {
-	case 5:
-		len = 4;
-		break;
-	case 8:
-		len = 2;
-		break;
-	}
-
-	if (IS_TDS50(tds->conn)
-	    && (col->on_server.column_type == SYBIMAGE || col->on_server.column_type == SYBTEXT))
-		len += 2;
-
-	/* TDS7.1 output collate information */
-	if (IS_TDS71_PLUS(tds->conn) && is_collate_type(col->on_server.column_type))
-		len += 5;
-
-	return len;
 }
 
 /**
@@ -1234,15 +1209,6 @@ tds_numeric_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	return TDS_SUCCESS;
 }
 
-unsigned
-tds_numeric_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	CHECK_TDS_EXTRA(tds);
-	CHECK_COLUMN_EXTRA(col);
-
-	return 3;
-}
-
 TDSRET
 tds_numeric_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
 {
@@ -1438,12 +1404,6 @@ tds_clrudt_row_len(TDSCOLUMN *col)
 	return sizeof(TDSBLOB);
 }
 
-unsigned
-tds_clrudt_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 3;
-}
-
 TDSRET
 tds_clrudt_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 {
@@ -1496,12 +1456,6 @@ tds_sybbigtime_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	return TDS_SUCCESS;
 }
 
-unsigned
-tds_sybbigtime_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 2;
-}
-
 TDSRET
 tds_sybbigtime_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
 {
@@ -1540,12 +1494,6 @@ TDSRET
 tds_invalid_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 {
 	return TDS_FAIL;
-}
-
-unsigned
-tds_invalid_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 0;
 }
 
 TDSRET

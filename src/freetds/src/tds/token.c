@@ -46,6 +46,7 @@
 #include <freetds/bytes.h>
 #include <freetds/alloca.h>
 #include "replacements.h"
+#include "encodings.h"
 
 /** \cond HIDDEN_SYMBOLS */
 #define USE_ICONV (tds->conn->use_iconv)
@@ -252,7 +253,7 @@ tds_process_default_tokens(TDSSOCKET * tds, int marker)
 		tok_size = tds_get_byte(tds);
 		if (tok_size >= 3) {
 			tds_get_byte(tds);
-			tds5_negotiate_set_msg_type(tds, tds->conn->authentication, tds_get_usmallint(tds));
+			tds5_negotiate_set_msg_type(tds->conn->authentication, tds_get_usmallint(tds));
 			tok_size -= 3;
 		}
 		tds_get_n(tds, NULL, tok_size);
@@ -386,7 +387,7 @@ tds_process_loginack(TDSSOCKET *tds, TDSRET *login_succeeded)
 	 * TDS 4.2 reports 1 on success and is not
 	 * present on failure
 	 */
-	if (ack == 5 || ack == 1) {
+	if (ack == 5 || ack == 1 || (IS_TDS50(tds->conn) && ack == 0x85)) {
 		*login_succeeded = TDS_SUCCESS;
 		/* authentication is now useless */
 		if (tds->conn->authentication) {
@@ -1519,6 +1520,7 @@ tds7_get_data_info(TDSSOCKET * tds, TDSCOLUMN * curcol)
 	curcol->column_nullable = curcol->column_flags & 0x01;
 	curcol->column_writeable = (curcol->column_flags & 0x08) > 0;
 	curcol->column_identity = (curcol->column_flags & 0x10) > 0;
+	curcol->column_computed = (curcol->column_flags & 0x20) > 0;
 
 	TDS_GET_COLUMN_TYPE(curcol);	/* sets "cardinal" type */
 
@@ -3229,13 +3231,14 @@ adjust_character_column_size(TDSSOCKET * tds, TDSCOLUMN * curcol)
 	if (curcol->on_server.column_type == SYBLONGBINARY && (
 		curcol->column_usertype == USER_UNICHAR_TYPE ||
 		curcol->column_usertype == USER_UNIVARCHAR_TYPE)) {
+		const int canonic_client = tds->conn->char_convs[client2ucs2]->from.charset.canonic;
 #ifdef WORDS_BIGENDIAN
-		static const char sybase_utf[] = "UTF-16BE";
+		const int sybase_utf = TDS_CHARSET_UTF_16BE;
 #else
-		static const char sybase_utf[] = "UTF-16LE";
+		const int sybase_utf = TDS_CHARSET_UTF_16LE;
 #endif
 
-		curcol->char_conv = tds_iconv_get(tds->conn, tds->conn->char_convs[client2ucs2]->from.charset.name, sybase_utf);
+		curcol->char_conv = tds_iconv_get_info(tds->conn, canonic_client, sybase_utf);
 
 		/* fallback to UCS-2LE */
 		/* FIXME should be useless. Does not works always */
@@ -3243,8 +3246,7 @@ adjust_character_column_size(TDSSOCKET * tds, TDSCOLUMN * curcol)
 			curcol->char_conv = tds->conn->char_convs[client2ucs2];
 	}
 
-	/* FIXME: and sybase ?? */
-	if (!curcol->char_conv && IS_TDS7_PLUS(tds->conn) && is_ascii_type(curcol->on_server.column_type))
+	if (!curcol->char_conv && is_ascii_type(curcol->on_server.column_type))
 		curcol->char_conv = tds->conn->char_convs[client2server_chardata];
 
 	if (!USE_ICONV || !curcol->char_conv)
