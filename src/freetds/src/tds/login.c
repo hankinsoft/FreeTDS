@@ -413,6 +413,8 @@ tds_connect(TDSSOCKET * tds, TDSLOGIN * login, int *p_oserr)
 	struct addrinfo *addrs;
 	int orig_port;
 	bool rerouted = false;
+	/* save to restore during redirected connection */
+	unsigned int orig_mars = login->mars;
 
 	/*
 	 * A major version of 0 means try to guess the TDS version. 
@@ -573,11 +575,27 @@ reroute:
 	}
 
 	/* need to do rerouting */
-	if (IS_TDS71_PLUS(tds->conn) && !rerouted
+	if (IS_TDS71_PLUS(tds->conn)
 	    && !tds_dstr_isempty(&login->routing_address) && login->routing_port) {
 		TDSRET ret;
+		char *server_name = NULL;
 
 		tds_close_socket(tds);
+		/* only one redirection is allowed */
+		if (rerouted) {
+			tdserror(tds_get_ctx(tds), tds, TDSEFCON, 0);
+			return -TDSEFCON;
+		}
+		if (asprintf(&server_name, "%s,%d", tds_dstr_cstr(&login->routing_address), login->routing_port) < 0) {
+			tdserror(tds_get_ctx(tds), tds, TDSEFCON, 0);
+			return -TDSEMEM;
+		}
+		if (!tds_dstr_set(&login->server_name, server_name)) {
+			free(server_name);
+			tdserror(tds_get_ctx(tds), tds, TDSEFCON, 0);
+			return -TDSEMEM;
+		}
+		login->mars = orig_mars;
 		login->port = login->routing_port;
 		ret = tds_lookup_host_set(tds_dstr_cstr(&login->routing_address), &login->ip_addrs);
 		login->routing_port = 0;
@@ -593,9 +611,28 @@ reroute:
 #if ENABLE_ODBC_MARS
 	/* initialize SID */
 	if (IS_TDS72_PLUS(tds->conn) && login->mars) {
-		tds->conn->sessions[0] = NULL;
+		TDS72_SMP_HEADER *p;
+
+		tds_extra_assert(tds->sid == 0);
+		tds_extra_assert(tds->conn->sessions[0] == tds);
+		tds_extra_assert(tds->send_packet != NULL);
+		tds_extra_assert(!tds->send_packet->next);
+
 		tds->conn->mars = 1;
-		tds->sid = -1;
+
+		/* start session with a SMP SYN */
+		if (TDS_FAILED(tds_append_syn(tds)))
+			return -TDSEMEM;
+
+		/* reallocate send_packet */
+		if (!tds_realloc_socket(tds, tds->out_buf_max))
+			return -TDSEMEM;
+
+		/* start SMP DATA header */
+		p = (TDS72_SMP_HEADER *) tds->send_packet->buf;
+		p->signature = TDS72_SMP;
+		p->type = TDS_SMP_DATA;
+
 		tds_init_write_buf(tds);
 	}
 #endif
@@ -649,6 +686,8 @@ tds_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 
 	unsigned char protocol_version[4];
 	unsigned char program_version[4];
+	unsigned char sec_flags = 0;
+	bool use_kerberos = false;
 
 	int len;
 	char blockstr[16];
@@ -663,13 +702,27 @@ tds_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 		return TDS_FAIL;
 	}
 	if (tds_dstr_isempty(&login->user_name)) {
-		tdsdump_log(TDS_DBG_ERROR, "Kerberos login not supported using TDS 4.x or 5.0\n");
+		if (!IS_TDS50(tds->conn)) {
+			tdsdump_log(TDS_DBG_ERROR, "Kerberos login not supported using TDS 4.x\n");
+			return TDS_FAIL;
+		}
+
+#ifdef ENABLE_KRB5
+		/* try kerberos */
+		sec_flags = TDS5_SEC_LOG_SECSESS;
+		use_kerberos = true;
+		tds->conn->authentication = tds_gss_get_auth(tds);
+		if (!tds->conn->authentication)
+			return TDS_FAIL;
+#else
+		tdsdump_log(TDS_DBG_ERROR, "requested GSS authentication but not compiled in\n");
 		return TDS_FAIL;
+#endif
 	}
 	if (encryption_level == TDS_ENCRYPTION_DEFAULT)
 		encryption_level = TDS_ENCRYPTION_OFF;
-	if (encryption_level != TDS_ENCRYPTION_OFF) {
-		if (IS_TDS42(tds->conn)) {
+	if (!use_kerberos && encryption_level != TDS_ENCRYPTION_OFF) {
+		if (!IS_TDS50(tds->conn)) {
 			tdsdump_log(TDS_DBG_ERROR, "Encryption not supported using TDS 4.x\n");
 			return TDS_FAIL;
 		}
@@ -747,7 +800,9 @@ tds_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	/* oldsecure(2), should be zero, used by old software */
 	tds_put_n(tds, NULL, 2);
 	/* seclogin(1) bitmask */
-	tds_put_byte(tds, encryption_level != TDS_ENCRYPTION_OFF ? TDS5_SEC_LOG_ENCRYPT2|TDS5_SEC_LOG_NONCE : 0);
+	if (sec_flags == 0 && encryption_level != TDS_ENCRYPTION_OFF)
+		sec_flags = TDS5_SEC_LOG_ENCRYPT2|TDS5_SEC_LOG_ENCRYPT3;
+	tds_put_byte(tds, sec_flags);
 	/* secbulk(1)
 	 * halogin(1) type of ha login
 	 * hasessionid(6) id of session to reconnect
@@ -775,10 +830,17 @@ tds_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	} else if (IS_TDS50(tds->conn)) {
 		/* just padding to 8 bytes */
 		tds_put_n(tds, NULL, 4);
+
+		/* send capabilities */
 		tds_put_byte(tds, TDS_CAPABILITY_TOKEN);
 		tds_put_smallint(tds, sizeof(tds->conn->capabilities));
 		tds_put_n(tds, &tds->conn->capabilities, sizeof(tds->conn->capabilities));
 	}
+
+#ifdef ENABLE_KRB5
+	if (use_kerberos)
+		tds5_gss_send(tds);
+#endif
 
 	return tds_flush_packet(tds);
 }
@@ -1216,7 +1278,7 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	tds->in_pos += pkt_len;
 	/* TODO some mssql version do not set last packet, update tds according */
 
-	tdsdump_log(TDS_DBG_INFO1, "detected flag %d\n", crypt_flag);
+	tdsdump_log(TDS_DBG_INFO1, "detected crypt flag %d\n", crypt_flag);
 
 	/* if server do not has certificate do normal login */
 	if (crypt_flag == TDS7_ENCRYPT_NOT_SUP) {
@@ -1228,7 +1290,7 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	}
 
 	/*
-	 * if server has a certificate it require at least a crypted login
+	 * if server has a certificate it requires at least a crypted login
 	 * (even if data is not encrypted)
 	 */
 
@@ -1244,7 +1306,7 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 
 	ret = tds7_send_login(tds, login);
 
-	/* if flag is 0 it means that after login server continue not encrypted */
+	/* if flag is TDS7_ENCRYPT_OFF(0) it means that after login server continue not encrypted */
 	if (crypt_flag == TDS7_ENCRYPT_OFF || TDS_FAILED(ret))
 		tds_ssl_deinit(tds->conn);
 

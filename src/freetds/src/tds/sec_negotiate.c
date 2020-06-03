@@ -62,8 +62,6 @@
 typedef struct tds5_negotiate
 {
 	TDSAUTHENTICATION tds_auth;
-	/** message type from server */
-	unsigned msg_type;
 } TDS5NEGOTIATE;
 
 static TDSRET
@@ -77,28 +75,18 @@ tds5_negotiate_free(TDSCONNECTION * conn, TDSAUTHENTICATION * tds_auth)
 	return TDS_SUCCESS;
 }
 
-void
-tds5_negotiate_set_msg_type(TDSSOCKET * tds, TDSAUTHENTICATION * tds_auth, unsigned msg_type)
-{
-	TDS5NEGOTIATE *auth = (TDS5NEGOTIATE *) tds_auth;
-
-	if (tds_auth && tds_auth->free == tds5_negotiate_free)
-		auth->msg_type = msg_type;
-}
-
 static void
 tds5_send_msg(TDSSOCKET *tds, uint16_t msg_type)
 {
 	tds_put_tinyint(tds, TDS_MSG_TOKEN);
-	tds_put_tinyint(tds, 3);
-	tds_put_tinyint(tds, 1);
+	tds_put_tinyint(tds, 3); /* length */
+	tds_put_tinyint(tds, 1); /* status, 1=has params */
 	tds_put_smallint(tds, msg_type);
 }
 
 static TDSRET
 tds5_negotiate_handle_next(TDSSOCKET * tds, TDSAUTHENTICATION * tds_auth, size_t len)
 {
-	TDS5NEGOTIATE *auth = (TDS5NEGOTIATE *) tds_auth;
 	TDSPARAMINFO *info;
 	void *rsa, *nonce = NULL;
 	size_t rsa_len, nonce_len = 0;
@@ -112,13 +100,13 @@ tds5_negotiate_handle_next(TDSSOCKET * tds, TDSAUTHENTICATION * tds_auth, size_t
 		goto error;
 
 	/* we only support RSA authentication, we should have send 2/3 parameters:
-	 * 1- integer.. unknown actually 1 TODO
+	 * 1- integer, cipher suite. 1 for RSA
 	 * 2- binary, rsa public key in PEM format
 	 * 3- binary, nonce (optional)
 	 */
 
 	/* message not supported */
-	if (auth->msg_type != 0x1e)
+	if (tds_auth->msg_type != TDS5_MSG_SEC_ENCRYPT3)
 		goto error;
 
 	info = tds->param_info;
@@ -143,14 +131,14 @@ tds5_negotiate_handle_next(TDSSOCKET * tds, TDSAUTHENTICATION * tds_auth, size_t
 	tds->out_flag = TDS_NORMAL;
 
 	/* password */
-	tds5_send_msg(tds, 0x1f);
+	tds5_send_msg(tds, TDS5_MSG_SEC_LOGPWD3);
 	tds_put_n(tds, "\xec\x0e\x00\x01\x00\x00\x00\x00\x00\x00\x00\xe1\xff\xff\xff\x7f\x00", 0x11);
 	tds_put_byte(tds, TDS5_PARAMS_TOKEN);
 	tds_put_int(tds, em_size);
 	tds_put_n(tds, em, em_size);
 
 	/* remote password */
-	tds5_send_msg(tds, 0x20);
+	tds5_send_msg(tds, TDS5_MSG_SEC_REMPWD3);
 	tds_put_n(tds, "\xec\x17\x00\x02\x00\x00\x00\x00\x00\x00\x00\x27\xff\x00\x00\x00\x00\x00\x00\x00\xe1\xff\xff\xff\x7f\x00", 0x1a);
 	tds_put_byte(tds, TDS5_PARAMS_TOKEN);
 	tds_put_byte(tds, 0);
@@ -192,11 +180,6 @@ tds5_negotiate_get_auth(TDSSOCKET * tds)
 }
 
 #else /* not HAVE_GNUTLS or HAVE_OPENSSL */
-
-void
-tds5_negotiate_set_msg_type(TDSSOCKET * tds, TDSAUTHENTICATION * tds_auth, unsigned msg_type)
-{
-}
 
 TDSAUTHENTICATION *
 tds5_negotiate_get_auth(TDSSOCKET * tds)

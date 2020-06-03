@@ -477,6 +477,7 @@ dbbindtype(int datatype)
 	
 	case SYBBIT:		return BITBIND;
 
+	case SYBLONGCHAR:
 	case SYBTEXT:
 	case SYBVARCHAR:
 	case SYBCHAR:		return NTBSTRINGBIND;
@@ -712,7 +713,7 @@ dblogin(void)
 
 	tdsdump_log(TDS_DBG_FUNC, "dblogin(void)\n");
 
-	if ((loginrec = tds_new(LOGINREC, 1)) == NULL) {
+	if ((loginrec = tds_new0(LOGINREC, 1)) == NULL) {
 		dbperror(NULL, SYBEMEM, errno);
 		return NULL;
 	}
@@ -799,6 +800,9 @@ dbsetlname(LOGINREC * login, const char *value, int which)
 		break;
 	case DBSETDBNAME:
 		copy_ret = !!tds_dstr_copy(&login->tds_login->database, value_nonull);
+		break;
+	case DBSETSERVERPRINCIPAL:
+		copy_ret = !!tds_dstr_copy(&login->tds_login->server_spn, value_nonull);
 		break;
 	default:
 		dbperror(NULL, SYBEASUL, 0); /* Attempt to set unknown LOGINREC field */
@@ -896,27 +900,39 @@ dbsetlshort(LOGINREC * login, int value, int which)
 RETCODE
 dbsetlbool(LOGINREC * login, int value, int which)
 {
+	bool b_value;
+
 	tdsdump_log(TDS_DBG_FUNC, "dbsetlbool(%p, %d, %d)\n", login, value, which);
 
-	if( login == NULL ) {
+	if (login == NULL) {
 		dbperror(NULL, SYBEASNL, 0);
 		return FAIL;
 	}
 
+	b_value = (value != 0);
+
 	switch (which) {
 	case DBSETBCP:
-		tds_set_bulk(login->tds_login, !!value);
+		tds_set_bulk(login->tds_login, b_value);
 		return SUCCEED;
-		break;
 	case DBSETUTF16:
-		login->tds_login->use_utf16 = (value != 0);
+		login->tds_login->use_utf16 = b_value;
 		return SUCCEED;
 	case DBSETNTLMV2:
-		login->tds_login->use_ntlmv2 = (value != 0);
+		login->tds_login->use_ntlmv2 = b_value;
 		login->tds_login->use_ntlmv2_specified = 1;
 		return SUCCEED;
 	case DBSETREADONLY:
-		login->tds_login->readonly_intent = (value != 0);
+		login->tds_login->readonly_intent = b_value;
+		return SUCCEED;
+	case DBSETNETWORKAUTH:
+		login->network_auth = b_value;
+		return SUCCEED;
+	case DBSETMUTUALAUTH:
+		login->tds_login->mutual_authentication = b_value;
+		return SUCCEED;
+	case DBSETDELEGATION:
+		login->tds_login->gssapi_use_delegation = b_value;
 		return SUCCEED;
 	case DBSETENCRYPT:
 	case DBSETLABELED:
@@ -1256,6 +1272,11 @@ tdsdbopen(LOGINREC * login, const char *server, int msdblib)
 
 	tdsdump_log(TDS_DBG_FUNC, "tdsdbopen: Calling tds_connect_and_login(%p, %p)\n",
 		dbproc->tds_socket, connection);
+
+	if (login->network_auth) {
+		tds_dstr_empty(&connection->user_name);
+		tds_dstr_empty(&connection->password);
+	}
 
 	if (TDS_FAILED(tds_connect_and_login(dbproc->tds_socket, connection))) {
 		tdsdump_log(TDS_DBG_ERROR, "tdsdbopen: tds_connect_and_login failed for \"%s\"!\n",
@@ -2453,7 +2474,7 @@ dbconvert_ps(DBPROCESS * dbproc, int db_srctype, const BYTE * src, DBINT srclen,
 
 	tdsdump_log(TDS_DBG_INFO1, "dbconvert_ps() calling tds_convert\n");
 
-	len = tds_convert(g_dblib_ctx.tds_ctx, srctype, (const TDS_CHAR *) src, srclen, desttype, &dres);
+	len = tds_convert(g_dblib_ctx.tds_ctx, srctype, src, srclen, desttype, &dres);
 	tdsdump_log(TDS_DBG_INFO1, "dbconvert_ps() called tds_convert returned %d\n", len);
 
 	if (len < 0) {
@@ -2868,6 +2889,7 @@ dblib_coltype(TDSCOLUMN *colinfo)
 		return SYBCHAR;
 	case SYBVARBINARY:
 		return SYBBINARY;
+	case SYBLONGCHAR:
 	case SYBUNITEXT:
 	case SYBMSXML:
 		return SYBTEXT;
@@ -2917,7 +2939,6 @@ dblib_coltype(TDSCOLUMN *colinfo)
 	case XSYBNVARCHAR:
 	case XSYBVARCHAR:
 	case XSYBNCHAR:
-	case XSYBCHAR:
 	case SYB5INT8:
 		break;
 #if !ENABLE_EXTRA_CHECKS
@@ -7581,7 +7602,7 @@ copy_data_to_host_var(DBPROCESS * dbproc, TDS_SERVER_TYPE srctype, const BYTE * 
 
 	} /* end srctype == desttype */
 
-	len = tds_convert(g_dblib_ctx.tds_ctx, srctype, (const TDS_CHAR *) src, srclen, desttype, &dres);
+	len = tds_convert(g_dblib_ctx.tds_ctx, srctype, src, srclen, desttype, &dres);
 
 	tdsdump_log(TDS_DBG_INFO1, "copy_data_to_host_var(): tds_convert returned %d\n", len);
 
@@ -8265,16 +8286,3 @@ dbperror(DBPROCESS *dbproc, DBINT msgno, long errnum, ...)
 	return rc; /* not reached */
 }
 
-int
-dbportforinstance(const char * host, const char * instanceName)
-{
-    struct addrinfo * addrInfo = NULL;
-
-    if (TDS_FAILED(tds_lookup_host_set(host, &addrInfo)))
-    {
-        tdsdump_log(TDS_DBG_WARN, "Found host entry %s however name resolution failed. \n", host);
-        return 0;
-    }
-
-    return tds7_get_instance_port(addrInfo, instanceName);
-}

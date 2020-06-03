@@ -157,6 +157,7 @@ tds_bcp_init(TDSSOCKET *tds, TDSBCPINFO *bcpinfo)
 		curcol->column_nullable = resinfo->columns[i]->column_nullable;
 		curcol->column_identity = resinfo->columns[i]->column_identity;
 		curcol->column_timestamp = resinfo->columns[i]->column_timestamp;
+		curcol->column_computed = resinfo->columns[i]->column_computed;
 		
 		memcpy(curcol->column_collation, resinfo->columns[i]->column_collation, 5);
 		
@@ -285,6 +286,8 @@ tds_bcp_start_insert_stmt(TDSSOCKET * tds, TDSBCPINFO * bcpinfo)
 				continue;
 			if (!bcpinfo->identity_insert_on && bcpcol->column_identity)
 				continue;
+			if (bcpcol->column_computed)
+				continue;
 			tds7_build_bulk_insert_stmt(tds, &colclause, bcpcol, firstcol);
 			firstcol = 0;
 		}
@@ -359,7 +362,8 @@ tds_bcp_send_record(TDSSOCKET *tds, TDSBCPINFO *bcpinfo, tds_bcp_get_col_data ge
 			 */
 
 			if ((!bcpinfo->identity_insert_on && bindcol->column_identity) || 
-				bindcol->column_timestamp) {
+				bindcol->column_timestamp ||
+				bindcol->column_computed) {
 				continue;
 			}
 
@@ -482,7 +486,6 @@ tds_bcp_add_fixed_columns(TDSBCPINFO *bcpinfo, tds_bcp_get_col_data get_col_data
 {
 	TDS_NUMERIC *num;
 	int row_pos = start;
-	TDSCOLUMN *bcpcol;
 	int cpbytes;
 	int i, j;
 	int bitleft = 0, bitpos;
@@ -494,7 +497,8 @@ tds_bcp_add_fixed_columns(TDSBCPINFO *bcpinfo, tds_bcp_get_col_data get_col_data
 
 	for (i = 0; i < bcpinfo->bindinfo->num_cols; i++) {
 
-		bcpcol = bcpinfo->bindinfo->columns[i];
+		TDSCOLUMN *const bcpcol = bcpinfo->bindinfo->columns[i];
+		const TDS_INT column_size = bcpcol->on_server.column_size;
 
 		if (is_nullable_type(bcpcol->column_type) || bcpcol->column_nullable)
 			continue;
@@ -531,19 +535,19 @@ tds_bcp_add_fixed_columns(TDSBCPINFO *bcpinfo, tds_bcp_get_col_data get_col_data
 			--bitleft;
 			continue;
 		} else {
-			cpbytes = bcpcol->bcp_column_data->datalen > bcpcol->column_size ?
-				  bcpcol->column_size : bcpcol->bcp_column_data->datalen;
+			cpbytes = bcpcol->bcp_column_data->datalen > column_size ?
+				  column_size : bcpcol->bcp_column_data->datalen;
 			memcpy(&rowbuffer[row_pos], bcpcol->bcp_column_data->data, cpbytes);
 
 			/* CHAR data may need padding out to the database length with blanks */
 			/* TODO check binary !!! */
-			if (bcpcol->column_type == SYBCHAR && cpbytes < bcpcol->column_size) {
-				for (j = cpbytes; j <  bcpcol->column_size; j++)
+			if (bcpcol->column_type == SYBCHAR && cpbytes < column_size) {
+				for (j = cpbytes; j <  column_size; j++)
 					rowbuffer[row_pos + j] = ' ';
 			}
 		}
 
-		row_pos += bcpcol->column_size;
+		row_pos += column_size;
 	}
 	return row_pos;
 }
@@ -723,7 +727,8 @@ tds7_bcp_send_colmetadata(TDSSOCKET *tds, TDSBCPINFO *bcpinfo)
 	for (i = 0; i < bcpinfo->bindinfo->num_cols; i++) {
 		bcpcol = bcpinfo->bindinfo->columns[i];
 		if ((!bcpinfo->identity_insert_on && bcpcol->column_identity) || 
-			bcpcol->column_timestamp) {
+			bcpcol->column_timestamp ||
+			bcpcol->column_computed) {
 			continue;
 		}
 		num_cols++;
@@ -743,7 +748,8 @@ tds7_bcp_send_colmetadata(TDSSOCKET *tds, TDSBCPINFO *bcpinfo)
 		 */
 
 		if ((!bcpinfo->identity_insert_on && bcpcol->column_identity) || 
-			bcpcol->column_timestamp) {
+			bcpcol->column_timestamp ||
+			bcpcol->column_computed) {
 			continue;
 		}
 

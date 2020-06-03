@@ -88,6 +88,7 @@ extern "C"
 
 #define ODBC_MAX(a,b) ( (a) > (b) ? (a) : (b) )
 #define ODBC_MIN(a,b) ( (a) < (b) ? (a) : (b) )
+#define ODBC_CLAMP(x,a,b) ( (x) < (a) ? (a) : (x) > (b) ? (b) : (x) )
 
 struct _sql_error
 {
@@ -280,7 +281,7 @@ struct _hdbc
 	DSTR dsn;
 	DSTR oldpwd;
 #ifdef ENABLE_ODBC_WIDE
-	DSTR original_charset;
+	int original_charset_num;
 	TDSICONV *mb_conv;
 #endif
 
@@ -409,7 +410,7 @@ struct _hstmt
 	/** last valid parameter in params, it's a ODBC index (from 1 relative to descriptor) */
 	int param_num;
 	/** position in prepared query to check parameters, used only in RPC */
-	char *prepared_pos;
+	size_t prepared_pos;
 
 	unsigned int curr_param_row, num_param_rows;
 
@@ -713,29 +714,7 @@ void sqlwstr_free(SQLWSTRBUF *bufs);
 #define SQLWSTR_FREE() do {} while(0)
 #endif
 
-#if SIZEOF_SQLWCHAR == 2
-# if WORDS_BIGENDIAN
-#  define ODBC_WIDE_NAME "UCS-2BE"
-#  define ODBC_WIDE_NAME_UTF "UTF-16BE"
-# else
-#  define ODBC_WIDE_NAME "UCS-2LE"
-#  define ODBC_WIDE_NAME_UTF "UTF-16LE"
-# endif
-const char *odbc_get_wide_name(TDSCONNECTION *conn);
-#elif SIZEOF_SQLWCHAR == 4
-# if WORDS_BIGENDIAN
-#  define ODBC_WIDE_NAME "UCS-4BE"
-# else
-#  define ODBC_WIDE_NAME "UCS-4LE"
-# endif
-static inline const char *
-odbc_get_wide_name(TDSCONNECTION *conn)
-{
-	return ODBC_WIDE_NAME;
-}
-#else
-#error SIZEOF_SQLWCHAR not supported !!
-#endif
+int odbc_get_wide_canonic(TDSCONNECTION *conn);
 
 #include <freetds/popvis.h>
 

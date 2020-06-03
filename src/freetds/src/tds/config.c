@@ -609,6 +609,8 @@ tds_parse_conf_section(const char *option, const char *value, void *param)
 	} else if (!strcmp(option, TDS_GSSAPI_DELEGATION)) {
 		/* gssapi flag addition */
 		login->gssapi_use_delegation = tds_config_boolean(option, value, login);
+	} else if (!strcmp(option, TDS_STR_MUTUAL_AUTHENTICATION)) {
+		login->mutual_authentication = tds_config_boolean(option, value, login);
 	} else if (!strcmp(option, TDS_STR_DUMPFILE)) {
 		s = tds_dstr_copy(&login->dump_file, value);
 	} else if (!strcmp(option, TDS_STR_DEBUGFLAGS)) {
@@ -704,60 +706,73 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 	DSTR *res = &login->server_name;
 
 	if (!tds_dstr_isempty(&login->server_name)) {
-		if (1 || tds_dstr_isempty(&connection->server_name)) 
+		if (1 || tds_dstr_isempty(&connection->server_name))
 			res = tds_dstr_dup(&connection->server_name, &login->server_name);
 	}
+
 	if (login->tds_version)
 		connection->tds_version = login->tds_version;
-	if (res && !tds_dstr_isempty(&login->language)) {
+
+	if (res && !tds_dstr_isempty(&login->language))
 		res = tds_dstr_dup(&connection->language, &login->language);
-	}
-	if (res && !tds_dstr_isempty(&login->server_charset)) {
+
+	if (res && !tds_dstr_isempty(&login->server_charset))
 		res = tds_dstr_dup(&connection->server_charset, &login->server_charset);
-	}
+
 	if (res && !tds_dstr_isempty(&login->client_charset)) {
 		res = tds_dstr_dup(&connection->client_charset, &login->client_charset);
 		tdsdump_log(TDS_DBG_INFO1, "tds_config_login: %s is %s.\n", "client_charset",
 			    tds_dstr_cstr(&connection->client_charset));
 	}
+
 	if (!login->use_utf16)
 		connection->use_utf16 = login->use_utf16;
+
 	if (res && !tds_dstr_isempty(&login->database)) {
 		res = tds_dstr_dup(&connection->database, &login->database);
 		tdsdump_log(TDS_DBG_INFO1, "tds_config_login: %s is %s.\n", "database_name",
 			    tds_dstr_cstr(&connection->database));
 	}
-	if (res && !tds_dstr_isempty(&login->client_host_name)) {
+
+	if (res && !tds_dstr_isempty(&login->client_host_name))
 		res = tds_dstr_dup(&connection->client_host_name, &login->client_host_name);
-	}
-	if (res && !tds_dstr_isempty(&login->app_name)) {
+
+	if (res && !tds_dstr_isempty(&login->app_name))
 		res = tds_dstr_dup(&connection->app_name, &login->app_name);
-	}
-	if (res && !tds_dstr_isempty(&login->user_name)) {
+
+	if (res && !tds_dstr_isempty(&login->user_name))
 		res = tds_dstr_dup(&connection->user_name, &login->user_name);
-	}
+
 	if (res && !tds_dstr_isempty(&login->password)) {
 		/* for security reason clear memory */
 		tds_dstr_zero(&connection->password);
 		res = tds_dstr_dup(&connection->password, &login->password);
 	}
-	if (res && !tds_dstr_isempty(&login->library)) {
+
+	if (res && !tds_dstr_isempty(&login->library))
 		res = tds_dstr_dup(&connection->library, &login->library);
-	}
-	if (login->encryption_level) {
+
+	if (login->encryption_level)
 		connection->encryption_level = login->encryption_level;
-	}
-	if (login->suppress_language) {
+
+	if (login->suppress_language)
 		connection->suppress_language = 1;
-	}
-	if (!login->bulk_copy) {
+
+	if (!login->bulk_copy)
 		connection->bulk_copy = 0;
-	}
-	if (login->block_size) {
+
+	if (login->block_size)
 		connection->block_size = login->block_size;
-	}
+
+	if (login->gssapi_use_delegation)
+		connection->gssapi_use_delegation = login->gssapi_use_delegation;
+
+	if (login->mutual_authentication)
+		connection->mutual_authentication = login->mutual_authentication;
+
 	if (login->port)
 		connection->port = login->port;
+
 	if (login->connect_timeout)
 		connection->connect_timeout = login->connect_timeout;
 
@@ -767,19 +782,21 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 	if (!login->check_ssl_hostname)
 		connection->check_ssl_hostname = login->check_ssl_hostname;
 
-	if (res && !tds_dstr_isempty(&login->db_filename)) {
+	if (res && !tds_dstr_isempty(&login->db_filename))
 		res = tds_dstr_dup(&connection->db_filename, &login->db_filename);
-	}
 
-	if (res && !tds_dstr_isempty(&login->openssl_ciphers)) {
+	if (res && !tds_dstr_isempty(&login->openssl_ciphers))
 		res = tds_dstr_dup(&connection->openssl_ciphers, &login->openssl_ciphers);
-	}
+
+	if (res && !tds_dstr_isempty(&login->server_spn))
+		res = tds_dstr_dup(&connection->server_spn, &login->server_spn);
 
 	/* copy other info not present in configuration file */
 	connection->capabilities = login->capabilities;
 
 	if (login->readonly_intent)
 		connection->readonly_intent = login->readonly_intent;
+
 	connection->use_new_password = login->use_new_password;
 
 	if (login->use_ntlmv2_specified) {
@@ -866,7 +883,7 @@ tds_config_env_tdshost(TDSLOGIN * login)
 	}
 	return 1;
 }
-#define TDS_FIND(k,b,c) tds_find(k, b, sizeof(b)/sizeof(b[0]), sizeof(b[0]), c)
+#define TDS_FIND(k,b,c) tds_find(k, b, TDS_VECTOR_SIZE(b), sizeof(b[0]), c)
 
 
 static void *
@@ -1327,26 +1344,6 @@ tds_get_compiletime_settings(void)
 		  TDS_VERSION_NO
 		, FREETDS_SYSCONFDIR
 		, "unknown"	/* need fancy script in makefile */
-#		ifdef MSDBLIB
-			, 1
-#		else
-			, 0
-#		endif
-#		ifdef TDS_SYBASE_COMPAT
-			, 1
-#		else
-			, 0
-#		endif
-#		ifdef _REENTRANT
-			, 1
-#		else
-			, 0
-#		endif
-#		ifdef HAVE_ICONV
-			, 1
-#		else
-			, 0
-#		endif
 #		if TDS50
 			, "5.0"
 #		elif TDS71
@@ -1360,30 +1357,60 @@ tds_get_compiletime_settings(void)
 #		else
 			, "auto"
 #		endif
-#		ifdef IODBC
-			, 1
+#		ifdef MSDBLIB
+			, true
 #		else
-			, 0
+			, false
+#		endif
+#		ifdef TDS_SYBASE_COMPAT
+			, true
+#		else
+			, false
+#		endif
+#		ifdef _REENTRANT
+			, true
+#		else
+			, false
+#		endif
+#		ifdef HAVE_ICONV
+			, true
+#		else
+			, false
+#		endif
+#		ifdef IODBC
+			, true
+#		else
+			, false
 #		endif
 #		ifdef UNIXODBC
-			, 1
+			, true
 #		else
-			, 0
+			, false
 #		endif
 #		ifdef HAVE_OPENSSL
-			, 1
+			, true
 #		else
-			, 0
+			, false
 #		endif
 #		ifdef HAVE_GNUTLS
-			, 1
+			, true
 #		else
-			, 0
+			, false
 #		endif
 #		if ENABLE_ODBC_MARS
-			, 1
+			, true
 #		else
-			, 0
+			, false
+#		endif
+#		ifdef HAVE_SSPI
+			, true
+#		else
+			, false
+#		endif
+#		ifdef ENABLE_KRB5
+			, true
+#		else
+			, false
 #		endif
 	};
 

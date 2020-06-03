@@ -139,19 +139,13 @@ typedef int (*DB_DBHNDLINTR_FUNC) (void *dbproc);
 */
 #ifdef STATUS
 /* On DU4.0d we get a conflicting STATUS definition from arpa/nameser.h
- when _REENTRANT is defined.
- */
+   when _REENTRANT is defined.
+*/
 #undef STATUS
 #endif
 typedef int STATUS;
 #if !defined(_WINDEF_) && !defined(_WINDEF_H) && !defined(DOS32X)
-# if defined (__OBJC__)
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-typedef signed char BOOL;
-#endif
-# else
 typedef int BOOL;
-#endif
 #endif
 #endif
 
@@ -1290,13 +1284,21 @@ RETCODE dbsetlversion (LOGINREC * login, BYTE version);
 #define DBSETDBNAME		14
 #define DBSETLDBNAME(x,y)	dbsetlname((x), (y), DBSETDBNAME)
 #define DBSETLVERSION(login, version) dbsetlversion((login), (version))
+#define DBSETNETWORKAUTH	101
+#define DBSETLNETWORKAUTH(x, y)	dbsetlbool((x), (y), DBSETNETWORKAUTH)
+#define DBSETMUTUALAUTH		102
+#define DBSETLMUTUALAUTH(x, y)	dbsetlbool((x), (y), DBSETMUTUALAUTH)
+#define DBSETSERVERPRINCIPAL	103
+#define DBSETLSERVERPRINCIPAL	dbsetlname((x), (y), DBSETSERVERPRINCIPAL)
 /* settings from here are purely FreeTDS extensions */
 #define DBSETUTF16		1001
 #define DBSETLUTF16(x,y)	dbsetlbool((x), (y), DBSETUTF16)
 #define DBSETNTLMV2		1002
 #define DBSETLNTLMV2(x,y)	dbsetlbool((x), (y), DBSETNTLMV2)
-#define DBSETREADONLY	1003
+#define DBSETREADONLY		1003
 #define DBSETLREADONLY(x,y)	dbsetlbool((x), (y), DBSETREADONLY)
+#define DBSETDELEGATION		1004
+#define DBSETLDELEGATION(x, y)	dbsetlbool((x), (y), DBSETDELEGATION)
 
 RETCODE bcp_init(DBPROCESS * dbproc, const char *tblname, const char *hfile, const char *errfile, int direction);
 DBINT bcp_done(DBPROCESS * dbproc);
