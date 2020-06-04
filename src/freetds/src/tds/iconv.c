@@ -63,7 +63,7 @@ static void tds_iconv_info_close(TDSICONV * char_conv);
  */
 
 #define TDS_ICONV_ENCODING_TABLES
-#include "encodings.h"
+#include <freetds/encodings.h>
 
 /* this will contain real iconv names */
 static const char *iconv_names[TDS_VECTOR_SIZE(canonic_charsets)];
@@ -957,18 +957,7 @@ skip_charsize:
 	return charsize;
 }
 
-int
-lookup_canonic(const CHARACTER_SET_ALIAS aliases[], const char *charset_name)
-{
-    int i;
-
-    for (i = 0; aliases[i].alias; ++i) {
-        if (0 == strcmp(charset_name, aliases[i].alias))
-            return aliases[i].canonic;
-    }
-
-    return -1;
-}
+#include <freetds/charset_lookup.h>
 
 /**
  * Determine canonical iconv character set.
@@ -978,15 +967,8 @@ lookup_canonic(const CHARACTER_SET_ALIAS aliases[], const char *charset_name)
 int
 tds_canonical_charset(const char *charset_name)
 {
-    int res;
-
-    /* search in alternative */
-    res = lookup_canonic(iconv_aliases, charset_name);
-    if (res >= 0)
-        return res;
-
-    /* search in sybase */
-    return lookup_canonic(sybase_aliases, charset_name);
+	const struct charset_alias *c = charset_lookup(charset_name, strlen(charset_name));
+	return c ? c->canonic : -1;
 }
 
 /**
