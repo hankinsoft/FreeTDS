@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface FreeTDSHelpers : NSObject
 
 + (NSString*) opensslVersion;
++ (int) dbportforinstance: (const char *) host
+             instanceName: (const char *) instanceName;
 
 @end
 
