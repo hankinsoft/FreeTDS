@@ -22,3 +22,4 @@ FOUNDATION_EXPORT double FreeTDSKitVersionNumber;
 FOUNDATION_EXPORT const unsigned char FreeTDSKitVersionString[];
 
 #import "sybdb.h"
+#import "FreeTDSHelpers.h"

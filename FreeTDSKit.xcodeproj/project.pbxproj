@@ -101,6 +101,10 @@
 		721360451D1858F1006A3F33 /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603C1D1858F1006A3F33 /* rpc.c */; };
 		721360471D1858F1006A3F33 /* xact.c in Sources */ = {isa = PBXBuildFile; fileRef = 7213603E1D1858F1006A3F33 /* xact.c */; };
 		721360481D1858F1006A3F33 /* buffering.h in Headers */ = {isa = PBXBuildFile; fileRef = 7213603F1D1858F1006A3F33 /* buffering.h */; };
+		723C132624AE02F300CB668F /* FreeTDSHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = 723C132424AE02F300CB668F /* FreeTDSHelpers.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		723C132724AE02F300CB668F /* FreeTDSHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = 723C132424AE02F300CB668F /* FreeTDSHelpers.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		723C132824AE02F300CB668F /* FreeTDSHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 723C132524AE02F300CB668F /* FreeTDSHelpers.m */; };
+		723C132924AE02F300CB668F /* FreeTDSHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 723C132524AE02F300CB668F /* FreeTDSHelpers.m */; };
 		7291DFBC1E1EF7C500359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -189,6 +193,8 @@
 		7213603C1D1858F1006A3F33 /* rpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rpc.c; path = src/freetds/src/dblib/rpc.c; sourceTree = "<group>"; };
 		7213603E1D1858F1006A3F33 /* xact.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = xact.c; path = src/freetds/src/dblib/xact.c; sourceTree = "<group>"; };
 		7213603F1D1858F1006A3F33 /* buffering.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = buffering.h; path = src/freetds/src/dblib/buffering.h; sourceTree = "<group>"; };
+		723C132424AE02F300CB668F /* FreeTDSHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSHelpers.h; sourceTree = "<group>"; };
+		723C132524AE02F300CB668F /* FreeTDSHelpers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeTDSHelpers.m; sourceTree = "<group>"; };
 		724F93501D86F4F400FDFF6B /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../../libcrypto.a; sourceTree = "<group>"; };
 		724F93511D86F4F400FDFF6B /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../libssl.a; sourceTree = "<group>"; };
 		7291DFB61E1EF66400359D2C /* FreeTDSKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSKit.h; sourceTree = "<group>"; };
@@ -304,6 +310,8 @@
 				6521F189144E6B1500CBCC36 /* Supporting Files */,
 				7203D12C1E1E8A8F00DC960E /* cryptohelper.m */,
 				7291DFB61E1EF66400359D2C /* FreeTDSKit.h */,
+				723C132424AE02F300CB668F /* FreeTDSHelpers.h */,
+				723C132524AE02F300CB668F /* FreeTDSHelpers.m */,
 			);
 			name = FreeTDSKit;
 			path = FreeTDS;
@@ -444,6 +452,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				723C132624AE02F300CB668F /* FreeTDSHelpers.h in Headers */,
 				7203D1CB1E1EC68B00DC960E /* sybdb.h in Headers */,
 				7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */,
 				7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */,
@@ -459,6 +468,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				723C132724AE02F300CB668F /* FreeTDSHelpers.h in Headers */,
 				7203D1CC1E1EC68B00DC960E /* sybdb.h in Headers */,
 				7291DFD11E1FBA8B00359D2C /* tds_sysdep_public.h in Headers */,
 				7291DFBC1E1EF7C500359D2C /* FreeTDSKit.h in Headers */,
@@ -593,6 +603,7 @@
 				7213601F1D1858A7006A3F33 /* mem.c in Sources */,
 				72AD13612316FFB700C87C40 /* getpassarg.c in Sources */,
 				7213602D1D1858A7006A3F33 /* token.c in Sources */,
+				723C132824AE02F300CB668F /* FreeTDSHelpers.m in Sources */,
 				721360431D1858F1006A3F33 /* dbpivot.c in Sources */,
 				721360121D1858A7006A3F33 /* convert.c in Sources */,
 				72AD134D2316FFB700C87C40 /* tdsstring.c in Sources */,
@@ -649,6 +660,7 @@
 				7203D1901E1EA27300DC960E /* mem.c in Sources */,
 				72AD13622316FFB700C87C40 /* getpassarg.c in Sources */,
 				7203D1911E1EA27300DC960E /* token.c in Sources */,
+				723C132924AE02F300CB668F /* FreeTDSHelpers.m in Sources */,
 				7203D1921E1EA27300DC960E /* dbpivot.c in Sources */,
 				7203D1931E1EA27300DC960E /* convert.c in Sources */,
 				72AD134E2316FFB700C87C40 /* tdsstring.c in Sources */,
