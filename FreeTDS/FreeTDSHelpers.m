@@ -54,7 +54,7 @@
           ciphers: (NSString*) ciphers
 {
     const char * pCiphers = ciphers.UTF8String;
-    tds_dstr_copy(login->tds_login->openssl_ciphers, pCiphers);
+    tds_dstr_copy(&login->tds_login->openssl_ciphers, pCiphers);
 } // End of setLogin:ciphers:
 
 @end
