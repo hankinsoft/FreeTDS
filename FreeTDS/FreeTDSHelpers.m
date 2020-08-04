@@ -63,4 +63,10 @@
     login->tds_login->encryption_level = encryptionLevel;
 }
 
++ (void) setLogin: (LOGINREC *) login
+      enableTLSv1: (BOOL) enableTLSv1
+{
+    login->tds_login->enable_tls_v1 = enableTLSv1;
+}
+
 @end

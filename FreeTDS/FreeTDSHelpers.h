@@ -22,6 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (void) setLogin: (void *) login
   encryptionLevel: (NSUInteger) encryptionLevel;
 
++ (void) setLogin: (void *) login
+      enableTLSv1: (BOOL) enableTLSv1;
+
 @end
 
 NS_ASSUME_NONNULL_END
