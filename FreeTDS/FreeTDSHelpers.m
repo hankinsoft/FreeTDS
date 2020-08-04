@@ -57,4 +57,10 @@
     tds_dstr_copy(&login->tds_login->openssl_ciphers, pCiphers);
 } // End of setLogin:ciphers:
 
++ (void) setLogin: (LOGINREC *) login
+  encryptionLevel: (NSUInteger) encryptionLevel
+{
+    login->tds_login->encryption_level = encryptionLevel;
+}
+
 @end

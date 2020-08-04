@@ -19,6 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (void) setLogin: (void *) login
           ciphers: (NSString*) ciphers;
 
++ (void) setLogin: (void *) login
+  encryptionLevel: (NSUInteger) encryptionLevel;
+
 @end
 
 NS_ASSUME_NONNULL_END
