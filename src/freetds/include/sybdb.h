@@ -146,7 +146,7 @@ typedef int (*DB_DBHNDLINTR_FUNC) (void *dbproc);
 typedef int STATUS;
 #if !defined(_WINDEF_) && !defined(_WINDEF_H) && !defined(DOS32X)
 # if defined (__OBJC__)
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE && !TARGET_CPU_ARM
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE && !TARGET_CPU_ARM && !TARGET_CPU_ARM64
 typedef signed char BOOL;
 #endif
 # else
