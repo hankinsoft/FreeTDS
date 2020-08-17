@@ -75,8 +75,11 @@
     // Set our password options
     login->tds_login->use_new_password = 1;
 
-    const char * cString = [newPassword cStringUsingEncoding: NSUTF8StringEncoding];
-    login->tds_login->new_password = cString;
+    const char * cString = newPassword.UTF8String;
+
+    // Zero and set
+    tds_dstr_zero(&login->tds_login->new_password);
+    tds_dstr_copy(&login->tds_login->new_password, cString);
 } // End of setLogin:updatePassword:
 
 @end
