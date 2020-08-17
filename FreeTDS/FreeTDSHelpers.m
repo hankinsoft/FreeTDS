@@ -69,4 +69,14 @@
     login->tds_login->enable_tls_v1 = enableTLSv1;
 }
 
++ (void) setLogin: (LOGINREC *) login
+   updatePassword: (NSString*) newPassword
+{
+    // Set our password options
+    login->tds_login->use_new_password = 1;
+
+    const char * cString = [newPassword cStringUsingEncoding: NSUTF8StringEncoding];
+    login->tds_login->new_password = cString;
+} // End of setLogin:updatePassword:
+
 @end

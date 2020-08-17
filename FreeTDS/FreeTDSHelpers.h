@@ -25,6 +25,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (void) setLogin: (void *) login
       enableTLSv1: (BOOL) enableTLSv1;
 
++ (void) setLogin: (void *) login
+   updatePassword: (NSString*) newPassword;
+
 @end
 
 NS_ASSUME_NONNULL_END
