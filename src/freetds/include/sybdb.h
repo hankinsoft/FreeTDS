@@ -28,7 +28,7 @@
 #ifndef _sybdb_h_
 #define _sybdb_h_
 
-#include "tds_sysdep_public.h"
+#include <FreeTDSKit/tds_sysdep_public.h>
 
 #undef TDS_STATIC_CAST
 #ifdef __cplusplus

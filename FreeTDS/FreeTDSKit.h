@@ -21,5 +21,5 @@ FOUNDATION_EXPORT double FreeTDSKitVersionNumber;
 //! Project version string for FreeTDSKit.
 FOUNDATION_EXPORT const unsigned char FreeTDSKitVersionString[];
 
-#import "sybdb.h"
-#import "FreeTDSHelpers.h"
+#import <FreeTDSKit/sybdb.h>
+#import <FreeTDSKit/FreeTDSHelpers.h>

@@ -5,7 +5,7 @@
 //  Created by Kyle Hankinson on 2020-07-02.
 //
 
-#import "FreeTDSHelpers.h"
+#import <FreeTDSKit/FreeTDSHelpers.h>
 #import <openssl/opensslv.h>
 
 #include <config.h>
