@@ -47,7 +47,13 @@
         return 0;
     }
 
-    return tds7_get_instance_port(addrInfo, instanceName);
+    int port = tds7_get_instance_port(addrInfo, instanceName);
+    if(addrInfo)
+    {
+        freeaddrinfo(addrInfo);
+    } // End of need to free addrInfo
+
+    return port;
 } // End of dbportforinstance
 
 + (void) setLogin: (LOGINREC *) login
