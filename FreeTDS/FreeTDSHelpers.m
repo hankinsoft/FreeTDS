@@ -88,4 +88,18 @@
     tds_dstr_copy(&login->tds_login->new_password, cString);
 } // End of setLogin:updatePassword:
 
++ (NSString*) getProductName: (DBPROCESS*) dbproc
+{
+    const char * cString = dbproc->tds_socket->conn[0].product_name;
+    if(NULL == cString || 0 == strlen(cString))
+    {
+        return NULL;
+    }
+
+    NSString * productName = [[NSString alloc] initWithCString: cString
+                                                      encoding: NSUTF8StringEncoding];
+
+    return productName;
+} // End of getProductName:
+
 @end

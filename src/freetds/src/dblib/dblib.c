@@ -1264,6 +1264,7 @@ tdsdbopen(LOGINREC * login, const char *server, int msdblib)
 		dbclose(dbproc);
 		return NULL;
 	}
+    
 	tds_free_login(connection);
 
 	dbproc->dbbuf = NULL;

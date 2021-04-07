@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (void) setLogin: (void *) login
    updatePassword: (NSString*) newPassword;
 
++ (NSString*) getProductName: (void*) process;
+
 @end
 
 NS_ASSUME_NONNULL_END
