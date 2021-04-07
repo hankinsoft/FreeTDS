@@ -100,7 +100,15 @@
         return NULL;
     } // End of no socket
 
-    const char * cString = dbproc->tds_socket->conn[0].product_name;
+    /*
+     * Attempt to see if FreeTDS gives productName.
+     *
+     * const char * cString = dbproc->tds_socket->conn[0].product_name;
+     * Nope - This gives us something simple like 'Microsoft SQL Server' (No verison details).
+     */
+    const char * cString = dbproc->tds_socket->conn[0].server;
+    
+
     if(NULL == cString || 0 == strlen(cString))
     {
         return NULL;
