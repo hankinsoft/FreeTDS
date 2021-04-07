@@ -90,6 +90,16 @@
 
 + (NSString*) getProductName: (DBPROCESS*) dbproc
 {
+    if(NULL == dbproc)
+    {
+        return NULL;
+    } // End of no proc
+
+    if(NULL == dbproc->tds_socket)
+    {
+        return NULL;
+    } // End of no socket
+
     const char * cString = dbproc->tds_socket->conn[0].product_name;
     if(NULL == cString || 0 == strlen(cString))
     {
