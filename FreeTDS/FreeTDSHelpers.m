@@ -90,6 +90,9 @@
 
 + (NSString*) getProductName: (DBPROCESS*) dbproc
 {
+    // Couldnt figure this out. Leaving it here so I can see the comments below in the future.
+    return NULL;
+
     if(NULL == dbproc)
     {
         return NULL;
@@ -105,9 +108,11 @@
      *
      * const char * cString = dbproc->tds_socket->conn[0].product_name;
      * Nope - This gives us something simple like 'Microsoft SQL Server' (No verison details).
+     *
+     * const char * cString = dbproc->tds_socket->conn[0].server;
+     * Note - This gives the database.
      */
     const char * cString = dbproc->tds_socket->conn[0].server;
-    
 
     if(NULL == cString || 0 == strlen(cString))
     {
