@@ -105,6 +105,8 @@
 		723C132724AE02F300CB668F /* FreeTDSHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = 723C132424AE02F300CB668F /* FreeTDSHelpers.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		723C132824AE02F300CB668F /* FreeTDSHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 723C132524AE02F300CB668F /* FreeTDSHelpers.m */; };
 		723C132924AE02F300CB668F /* FreeTDSHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 723C132524AE02F300CB668F /* FreeTDSHelpers.m */; };
+		726D0F512873668E00092ACB /* FreeTDSKitTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 726D0F502873668E00092ACB /* FreeTDSKitTests.m */; };
+		726D0F522873668E00092ACB /* FreeTDSKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6521F17F144E6B1500CBCC36 /* FreeTDSKit.framework */; };
 		7291DFBC1E1EF7C500359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -138,6 +140,16 @@
 		72AD13692317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
 		72AD136A2317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		726D0F532873668E00092ACB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6521F175144E6B1500CBCC36 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6521F17E144E6B1500CBCC36;
+			remoteInfo = "FreeTDSKit-macos";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		6521F17F144E6B1500CBCC36 /* FreeTDSKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FreeTDSKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -197,6 +209,8 @@
 		723C132524AE02F300CB668F /* FreeTDSHelpers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeTDSHelpers.m; sourceTree = "<group>"; };
 		724F93501D86F4F400FDFF6B /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../../libcrypto.a; sourceTree = "<group>"; };
 		724F93511D86F4F400FDFF6B /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../libssl.a; sourceTree = "<group>"; };
+		726D0F4E2873668E00092ACB /* FreeTDSKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FreeTDSKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		726D0F502873668E00092ACB /* FreeTDSKitTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeTDSKitTests.m; sourceTree = "<group>"; };
 		7291DFB61E1EF66400359D2C /* FreeTDSKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSKit.h; sourceTree = "<group>"; };
 		7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_sysdep_public.h; path = src/freetds/include/tds_sysdep_public.h; sourceTree = "<group>"; };
 		72AD133D2316FFB700C87C40 /* sleep.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sleep.c; path = src/freetds/src/utils/sleep.c; sourceTree = "<group>"; };
@@ -248,6 +262,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		726D0F4B2873668E00092ACB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				726D0F522873668E00092ACB /* FreeTDSKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -256,6 +278,7 @@
 			children = (
 				6521F197144E6C3100CBCC36 /* Library Source */,
 				6521F188144E6B1500CBCC36 /* FreeTDSKit */,
+				726D0F4F2873668E00092ACB /* FreeTDSKitTests */,
 				6521F181144E6B1500CBCC36 /* Frameworks */,
 				6521F180144E6B1500CBCC36 /* Products */,
 				7203D1B41E1EA27300DC960E /* FreeTDSKit-macos copy-Info.plist */,
@@ -267,6 +290,7 @@
 			children = (
 				6521F17F144E6B1500CBCC36 /* FreeTDSKit.framework */,
 				7203D1B31E1EA27300DC960E /* FreeTDSKit.framework */,
+				726D0F4E2873668E00092ACB /* FreeTDSKitTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -417,6 +441,14 @@
 			name = include;
 			sourceTree = "<group>";
 		};
+		726D0F4F2873668E00092ACB /* FreeTDSKitTests */ = {
+			isa = PBXGroup;
+			children = (
+				726D0F502873668E00092ACB /* FreeTDSKitTests.m */,
+			);
+			path = FreeTDSKitTests;
+			sourceTree = "<group>";
+		};
 		72AD133C2316FF5F00C87C40 /* utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -519,6 +551,24 @@
 			productReference = 7203D1B31E1EA27300DC960E /* FreeTDSKit.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		726D0F4D2873668E00092ACB /* FreeTDSKitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 726D0F572873668E00092ACB /* Build configuration list for PBXNativeTarget "FreeTDSKitTests" */;
+			buildPhases = (
+				726D0F4A2873668E00092ACB /* Sources */,
+				726D0F4B2873668E00092ACB /* Frameworks */,
+				726D0F4C2873668E00092ACB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				726D0F542873668E00092ACB /* PBXTargetDependency */,
+			);
+			name = FreeTDSKitTests;
+			productName = FreeTDSKitTests;
+			productReference = 726D0F4E2873668E00092ACB /* FreeTDSKitTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -526,6 +576,13 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 1210;
+				TargetAttributes = {
+					726D0F4D2873668E00092ACB = {
+						CreatedOnToolsVersion = 13.3.1;
+						DevelopmentTeam = LKJB72232C;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = 6521F178144E6B1500CBCC36 /* Build configuration list for PBXProject "FreeTDSKit" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -542,6 +599,7 @@
 			targets = (
 				6521F17E144E6B1500CBCC36 /* FreeTDSKit-macos */,
 				7203D1721E1EA27300DC960E /* FreeTDSKit-ios */,
+				726D0F4D2873668E00092ACB /* FreeTDSKitTests */,
 			);
 		};
 /* End PBXProject section */
@@ -562,6 +620,13 @@
 			files = (
 				7203D1AE1E1EA27300DC960E /* InfoPlist.strings in Resources */,
 				7203D1AF1E1EA27300DC960E /* freetds.conf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		726D0F4C2873668E00092ACB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -682,7 +747,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		726D0F4A2873668E00092ACB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				726D0F512873668E00092ACB /* FreeTDSKitTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		726D0F542873668E00092ACB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6521F17E144E6B1500CBCC36 /* FreeTDSKit-macos */;
+			targetProxy = 726D0F532873668E00092ACB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		6521F18B144E6B1500CBCC36 /* InfoPlist.strings */ = {
@@ -981,6 +1062,69 @@
 			};
 			name = Release;
 		};
+		726D0F552873668E00092ACB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = LKJB72232C;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hankinsoft.FreeTDSKitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Debug;
+		};
+		726D0F562873668E00092ACB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LKJB72232C;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hankinsoft.FreeTDSKitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1007,6 +1151,15 @@
 			buildConfigurations = (
 				7203D1B11E1EA27300DC960E /* Debug */,
 				7203D1B21E1EA27300DC960E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		726D0F572873668E00092ACB /* Build configuration list for PBXNativeTarget "FreeTDSKitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				726D0F552873668E00092ACB /* Debug */,
+				726D0F562873668E00092ACB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
