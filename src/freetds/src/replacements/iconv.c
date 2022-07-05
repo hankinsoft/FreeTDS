@@ -74,12 +74,12 @@ typedef uint32_t ICONV_CHAR;
 static int
 get_utf8(const unsigned char *p, size_t len, ICONV_CHAR *out)
 {
-	uint32_t uc, state = 0;
+	uint32_t uc, state = UTF8_ACCEPT;
 	size_t l = 1;
 
 	do {
 		switch (decode_utf8(&state, &uc, *p++)) {
-		case 0:
+		case UTF8_ACCEPT:
 			*out = uc;
 			return l;
 		case UTF8_REJECT:
@@ -137,7 +137,7 @@ get_ucs4le(const unsigned char *p, size_t len, ICONV_CHAR *out)
 {
 	if (len < 4)
 		return -EINVAL;
-	*out = TDS_GET_A4LE(p);
+	*out = TDS_GET_UA4LE(p);
 	return 4;
 }
 
@@ -146,7 +146,7 @@ put_ucs4le(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 {
 	if (buf_len < 4)
 		return -E2BIG;
-	TDS_PUT_A4LE(buf, c);
+	TDS_PUT_UA4LE(buf, c);
 	return 4;
 }
 
@@ -155,7 +155,7 @@ get_ucs4be(const unsigned char *p, size_t len, ICONV_CHAR *out)
 {
 	if (len < 4)
 		return -EINVAL;
-	*out = TDS_GET_A4BE(p);
+	*out = TDS_GET_UA4BE(p);
 	return 4;
 }
 
@@ -164,7 +164,7 @@ put_ucs4be(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 {
 	if (buf_len < 4)
 		return -E2BIG;
-	TDS_PUT_A4BE(buf, c);
+	TDS_PUT_UA4BE(buf, c);
 	return 4;
 }
 
@@ -175,11 +175,11 @@ get_utf16le(const unsigned char *p, size_t len, ICONV_CHAR *out)
 
 	if (len < 2)
 		return -EINVAL;
-	c = TDS_GET_A2LE(p);
+	c = TDS_GET_UA2LE(p);
 	if ((c & 0xfc00) == 0xd800) {
 		if (len < 4)
 			return -EINVAL;
-		c2 = TDS_GET_A2LE(p+2);
+		c2 = TDS_GET_UA2LE(p+2);
 		if ((c2 & 0xfc00) == 0xdc00) {
 			*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
 			return 4;
@@ -195,15 +195,15 @@ put_utf16le(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 	if (c < 0x10000u) {
 		if (buf_len < 2)
 			return -E2BIG;
-		TDS_PUT_A2LE(buf, c);
+		TDS_PUT_UA2LE(buf, c);
 		return 2;
 	}
 	if (TDS_UNLIKELY(c >= 0x110000u))
 		return -EILSEQ;
 	if (buf_len < 4)
 		return -E2BIG;
-	TDS_PUT_A2LE(buf,   0xd7c0 + (c >> 10));
-	TDS_PUT_A2LE(buf+2, 0xdc00 + (c & 0x3ffu));
+	TDS_PUT_UA2LE(buf,   0xd7c0 + (c >> 10));
+	TDS_PUT_UA2LE(buf+2, 0xdc00 + (c & 0x3ffu));
 	return 4;
 }
 
@@ -214,11 +214,11 @@ get_utf16be(const unsigned char *p, size_t len, ICONV_CHAR *out)
 
 	if (len < 2)
 		return -EINVAL;
-	c = TDS_GET_A2BE(p);
+	c = TDS_GET_UA2BE(p);
 	if ((c & 0xfc00) == 0xd800) {
 		if (len < 4)
 			return -EINVAL;
-		c2 = TDS_GET_A2BE(p+2);
+		c2 = TDS_GET_UA2BE(p+2);
 		if ((c2 & 0xfc00) == 0xdc00) {
 			*out = (c << 10) + c2 - ((0xd800 << 10) + 0xdc00 - 0x10000);
 			return 4;
@@ -234,15 +234,15 @@ put_utf16be(unsigned char *buf, size_t buf_len, ICONV_CHAR c)
 	if (c < 0x10000u) {
 		if (buf_len < 2)
 			return -E2BIG;
-		TDS_PUT_A2BE(buf, c);
+		TDS_PUT_UA2BE(buf, c);
 		return 2;
 	}
 	if (TDS_UNLIKELY(c >= 0x110000u))
 		return -EILSEQ;
 	if (buf_len < 4)
 		return -E2BIG;
-	TDS_PUT_A2BE(buf,   0xd7c0 + (c >> 10));
-	TDS_PUT_A2BE(buf+2, 0xdc00 + (c & 0x3ffu));
+	TDS_PUT_UA2BE(buf,   0xd7c0 + (c >> 10));
+	TDS_PUT_UA2BE(buf+2, 0xdc00 + (c & 0x3ffu));
 	return 4;
 }
 

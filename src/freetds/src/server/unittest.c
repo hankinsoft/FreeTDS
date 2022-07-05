@@ -35,8 +35,9 @@
 #endif /* HAVE_UNISTD_H */
 
 #include <freetds/tds.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 #include <freetds/server.h>
+#include <freetds/utils.h>
 
 static void dump_login(TDSLOGIN * login);
 
@@ -64,6 +65,8 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	dump_login(login);
+	/* tds->conn->tds_version = 0x702; */
+	/* tds->conn->product_version = TDS_MS_VER(10, 0, 6000); */
 	if (!strcmp(tds_dstr_cstr(&login->user_name), "guest") && !strcmp(tds_dstr_cstr(&login->password), "sybase")) {
 		tds->out_flag = TDS_REPLY;
 		tds_env_change(tds, TDS_ENV_DATABASE, "master", "pubs2");
@@ -89,6 +92,10 @@ main(int argc, char **argv)
 	printf("query : %s\n", tds_get_generic_query(tds));
 	tds->out_flag = TDS_REPLY;
 	resinfo = tds_alloc_results(1);
+	if (!resinfo) {
+		fprintf(stderr, "out of memory");
+		exit(1);
+	}
 	resinfo->columns[0]->column_type = SYBVARCHAR;
 	resinfo->columns[0]->column_size = 30;
 	if (!tds_dstr_copy(&resinfo->columns[0]->column_name, "name"))

@@ -54,7 +54,7 @@
 #include <freetds/tds.h>
 #include <freetds/iconv.h>
 #include <freetds/server.h>
-#include <freetds/string.h>
+#include <freetds/utils/string.h>
 
 unsigned char *
 tds7_decrypt_pass(const unsigned char *crypt_pass, int len, unsigned char *clear_pass)
@@ -75,15 +75,26 @@ TDSSOCKET *
 tds_listen(TDSCONTEXT * ctx, int ip_port)
 {
 	TDSSOCKET *tds;
-	struct sockaddr_in sin;
 	TDS_SYS_SOCKET fd, s;
 	socklen_t len;
+#ifdef AF_INET6
+	struct sockaddr_in6 sin;
+
+	memset(&sin, 0, sizeof(sin));
+	sin.sin6_port = htons((short) ip_port);
+	sin.sin6_family = AF_INET6;
+
+	s = socket(AF_INET6, SOCK_STREAM, 0);
+#else
+	struct sockaddr_in sin;
 
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons((short) ip_port);
 	sin.sin_family = AF_INET;
 
 	s = socket(AF_INET, SOCK_STREAM, 0);
+#endif
+
 	if (TDS_IS_SOCKET_INVALID(s)) {
 		perror("socket");
 		return NULL;
@@ -103,11 +114,16 @@ tds_listen(TDSCONTEXT * ctx, int ip_port)
 	}
 	CLOSESOCKET(s);
 	tds = tds_alloc_socket(ctx, 4096);
+	if (!tds) {
+		fprintf(stderr, "out of memory");
+		return NULL;
+	}
 	tds_set_s(tds, fd);
 	tds->out_flag = TDS_LOGIN;
 	/* TODO proper charset */
 	tds_iconv_open(tds->conn, "ISO8859-1", 0);
 	/* get_incoming(tds->s); */
+	tds->state = TDS_IDLE;
 	return tds;
 }
 
@@ -302,6 +318,9 @@ tds_read_string(TDSSOCKET * tds, DSTR * s, int size)
  * use IS_TDSDEAD(tds) to distinguish between an error/shutdown on the socket,
  * or the receipt of an unexpected packet type.  In the latter case,
  * tds->in_flag will indicate the return type.
+ * Microsoft products require tds_version TDS72+, and SSMS requires a
+ * product_version. Currently the highest this method will set is TDS71,
+ * override after if necessary.
  */
 TDSLOGIN *
 tds_alloc_read_login(TDSSOCKET * tds)
