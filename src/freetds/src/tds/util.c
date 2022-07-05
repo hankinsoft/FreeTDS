@@ -123,6 +123,20 @@ tds_set_state(TDSSOCKET * tds, TDS_STATE state)
 		if (prior_state == TDS_READING || prior_state == TDS_WRITING)
 			tds_mutex_unlock(&tds->wire_mtx);
 		tds->state = state;
+
+		/* invalid, code should have either close or aborted all freezes */
+		if (TDS_UNLIKELY(tds->frozen)) {
+			TDSFREEZE freeze;
+
+			tds->frozen = 1;
+			freeze.tds = tds;
+			freeze.pkt = tds->frozen_packets;
+			freeze.pkt_pos = 8;
+			freeze.size_len = 0;
+			tds_freeze_abort(&freeze);
+
+			tds_connection_close(tds->conn);
+		}
 		break;
 	case TDS_WRITING:
 		CHECK_TDS_EXTRA(tds);
@@ -381,8 +395,6 @@ tdserror (const TDSCONTEXT * tds_ctx, TDSSOCKET * tds, int msgno, int errnum)
  * do not assure they don't read past len bytes as they
  * use still strlen to check length to copy limiting
  * after strlen to size passed
- * Also this function is different from strndup as it assume
- * that len bytes are valid
  * String returned is NUL terminated
  *
  * \param s   string to copy from
@@ -394,9 +406,14 @@ char *
 tds_strndup(const void *s, TDS_INTPTR len)
 {
 	char *out;
+	const char *end;
 
 	if (len < 0)
 		return NULL;
+
+	end = (const char *) memchr(s, '\0', len);
+	if (end)
+		len = end - (const char *) s;
 
 	out = tds_new(char, len + 1);
 	if (out) {

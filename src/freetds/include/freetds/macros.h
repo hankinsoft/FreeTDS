@@ -29,6 +29,8 @@
 #include <stddef.h>
 #endif /* HAVE_STDDEF_H */
 
+#include "tds_sysdep_public.h"
+
 #define TDS_ZERO_FREE(x) do {free((x)); (x) = NULL;} while(0)
 #define TDS_VECTOR_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
@@ -39,7 +41,7 @@
 #endif
 
 #if ENABLE_EXTRA_CHECKS
-# if defined(__llvm__) || (defined(__GNUC__) && (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
+# if defined(__llvm__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
 # define TDS_COMPILE_CHECK(name,check) \
     _Static_assert(check,#name)
 # elif defined(__GNUC__) && __GNUC__ >= 2
@@ -69,5 +71,8 @@
 #else
 #define TDS_WUR
 #endif
+
+#define TDS_INT2PTR(i) ((void*)(((char*)0)+((intptr_t)(i))))
+#define TDS_PTR2INT(p) ((int)(((char*)(p))-((char*)0)))
 
 #endif

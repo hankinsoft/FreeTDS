@@ -207,9 +207,6 @@
 #define USE_ICONV (tds->conn->use_iconv)
 
 static const TDSCOLUMNFUNCS *tds_get_column_funcs(TDSCONNECTION *conn, int type);
-#ifdef WORDS_BIGENDIAN
-static void tds_swap_datatype(int coltype, void *b);
-#endif
 static void tds_swap_numeric(TDS_NUMERIC *num);
 
 #undef MIN
@@ -281,7 +278,7 @@ tds_set_param_type(TDSCONNECTION * conn, TDSCOLUMN * curcol, TDS_SERVER_TYPE typ
 	}
 	tds_set_column_type(conn, curcol, type);
 
-	if (is_collate_type(type)) {
+	if (is_collate_type(type) || is_char_type(type)) {
 		curcol->char_conv = conn->char_convs[is_unicode_type(type) ? client2ucs2 : client2server_chardata];
 		memcpy(curcol->column_collation, conn->collation, sizeof(conn->collation));
 	}
@@ -375,6 +372,8 @@ tds_get_cardinal_type(TDS_SERVER_TYPE datatype, int usertype)
 			return SYBTEXT;
 		}
 		break;
+	case SYBMSXML:
+		return SYBLONGCHAR;
 	default:
 		break;
 	}
@@ -399,7 +398,11 @@ tds_generic_get_info(TDSSOCKET *tds, TDSCOLUMN *col)
 		col->column_size = tds_get_smallint(tds);
 		/* under TDS7.2 this means ?var???(MAX) */
 		if (col->column_size < 0 && IS_TDS72_PLUS(tds->conn)) {
-			col->column_size = 0x3ffffffflu;
+			if (is_char_type(col->column_type))
+				col->column_size = 0x3ffffffflu;
+			else
+				col->column_size = 0x7ffffffflu;
+
 			col->column_varint_size = 8;
 		}
 		if (col->column_size < 0)
@@ -577,7 +580,7 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 
 	type = (TDS_SERVER_TYPE) tds_get_byte(tds);
 	info_len = tds_get_byte(tds);
-	if (!is_tds_type_valid(type))
+	if (!is_variant_inner_type(type))
 		goto error_type;
 	v = (TDSVARIANT*) curcol->column_data;
 	v->type = type;
@@ -603,6 +606,8 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 			TDS_ZERO_FREE(v->data);
 		v->data_len = sizeof(TDS_NUMERIC);
 		num = tds_new0(TDS_NUMERIC, 1);
+		if (!num)
+			goto error_memory;
 		v->data = (TDS_CHAR *) num;
 		num->precision = tds_get_byte(tds);
 		num->scale     = tds_get_byte(tds);
@@ -689,9 +694,11 @@ tds_variant_get(TDSSOCKET * tds, TDSCOLUMN * curcol)
 #endif
 	}
 	v->data_len = colsize;
+	CHECK_COLUMN_EXTRA(curcol);
 	return TDS_SUCCESS;
 
 error_type:
+error_memory:
 	tds_get_n(tds, NULL, colsize);
 	return TDS_FAIL;
 }
@@ -900,34 +907,6 @@ tds_generic_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 		tds_put_n(tds, tds->conn->collation, 5);
 
 	return TDS_SUCCESS;
-}
-
-unsigned
-tds_generic_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	unsigned len = col->column_varint_size;
-
-	CHECK_TDS_EXTRA(tds);
-	CHECK_COLUMN_EXTRA(col);
-
-	switch (col->column_varint_size) {
-	case 5:
-		len = 4;
-		break;
-	case 8:
-		len = 2;
-		break;
-	}
-
-	if (IS_TDS50(tds->conn)
-	    && (col->on_server.column_type == SYBIMAGE || col->on_server.column_type == SYBTEXT))
-		len += 2;
-
-	/* TDS7.1 output collate information */
-	if (IS_TDS71_PLUS(tds->conn) && is_collate_type(col->on_server.column_type))
-		len += 5;
-
-	return len;
 }
 
 /**
@@ -1234,15 +1213,6 @@ tds_numeric_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	return TDS_SUCCESS;
 }
 
-unsigned
-tds_numeric_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	CHECK_TDS_EXTRA(tds);
-	CHECK_COLUMN_EXTRA(col);
-
-	return 3;
-}
-
 TDSRET
 tds_numeric_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
 {
@@ -1438,12 +1408,6 @@ tds_clrudt_row_len(TDSCOLUMN *col)
 	return sizeof(TDSBLOB);
 }
 
-unsigned
-tds_clrudt_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 3;
-}
-
 TDSRET
 tds_clrudt_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 {
@@ -1496,12 +1460,6 @@ tds_sybbigtime_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 	return TDS_SUCCESS;
 }
 
-unsigned
-tds_sybbigtime_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 2;
-}
-
 TDSRET
 tds_sybbigtime_put(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7)
 {
@@ -1540,12 +1498,6 @@ TDSRET
 tds_invalid_put_info(TDSSOCKET * tds, TDSCOLUMN * col)
 {
 	return TDS_FAIL;
-}
-
-unsigned
-tds_invalid_put_info_len(TDSSOCKET * tds, TDSCOLUMN * col)
-{
-	return 0;
 }
 
 TDSRET
@@ -1675,7 +1627,7 @@ tds_get_column_funcs(TDSCONNECTION *conn, int type)
 #include "tds_types.h"
 
 #ifdef WORDS_BIGENDIAN
-static void
+void
 tds_swap_datatype(int coltype, void *b)
 {
 	unsigned char *buf = (unsigned char *) b;
@@ -1684,12 +1636,14 @@ tds_swap_datatype(int coltype, void *b)
 	case SYBDATETIME4:
 		tds_swap_bytes(&buf[2], 2);
 	case SYBINT2:
+	case SYBUINT2:
 		tds_swap_bytes(buf, 2);
 		break;
 	case SYBMONEY:
 	case SYBDATETIME:
 		tds_swap_bytes(&buf[4], 4);
 	case SYBINT4:
+	case SYBUINT4:
 	case SYBMONEY4:
 	case SYBREAL:
 	case SYBDATE:
@@ -1697,6 +1651,7 @@ tds_swap_datatype(int coltype, void *b)
 		tds_swap_bytes(buf, 4);
 		break;
 	case SYBINT8:
+	case SYBUINT8:
 	case SYBFLT8:
 	case SYB5BIGTIME:
 	case SYB5BIGDATETIME:

@@ -56,13 +56,12 @@ typedef struct tds_column TDSCOLUMN;
 typedef struct tds_bcpinfo TDSBCPINFO;
 
 #include <freetds/version.h>
-#include "tds_sysdep_public.h"
 #include <freetds/sysdep_private.h>
 #include <freetds/thread.h>
 #include <freetds/bool.h>
 #include <freetds/macros.h>
 #include <freetds/utils/string.h>
-#include "replacements.h"
+#include <freetds/replacements.h>
 
 #include <freetds/pushvis.h>
 
@@ -84,16 +83,18 @@ typedef struct tds_compiletime_settings
 	const char *freetds_version;	/* release version of FreeTDS */
 	const char *sysconfdir;		/* location of freetds.conf */
 	const char *last_update;	/* latest software_version date among the modules */
-	int msdblib;		/* for MS style dblib */
-	int sybase_compat;	/* enable increased Open Client binary compatibility */
-	int threadsafe;		/* compile for thread safety default=no */
-	int libiconv;		/* search for libiconv in DIR/include and DIR/lib */
 	const char *tdsver;	/* TDS protocol version (4.2/4.6/5.0/7.0/7.1) 5.0 */
-	int iodbc;		/* build odbc driver against iODBC in DIR */
-	int unixodbc;		/* build odbc driver against unixODBC in DIR */
-	int openssl;		/* build against OpenSSL */
-	int gnutls;		/* build against GnuTLS */
-	int mars;		/* MARS enabled */
+	bool msdblib;		/* for MS style dblib */
+	bool sybase_compat;	/* enable increased Open Client binary compatibility */
+	bool threadsafe;		/* compile for thread safety default=no */
+	bool libiconv;		/* search for libiconv in DIR/include and DIR/lib */
+	bool iodbc;		/* build odbc driver against iODBC in DIR */
+	bool unixodbc;		/* build odbc driver against unixODBC in DIR */
+	bool openssl;		/* build against OpenSSL */
+	bool gnutls;		/* build against GnuTLS */
+	bool mars;		/* MARS enabled */
+	bool sspi;		/* SSPI enabled */
+	bool kerberos;		/* Kerberos enabled */
 } TDS_COMPILETIME_SETTINGS;
 
 /**
@@ -368,6 +369,7 @@ enum {
 	TDS_TYPEFLAG_BINARY   = 64,
 	TDS_TYPEFLAG_DATETIME = 128,
 	TDS_TYPEFLAG_NUMERIC  = 256,
+	TDS_TYPEFLAG_VARIANT  = 512,
 };
 
 extern const uint16_t tds_type_flags_ms[256];
@@ -379,6 +381,7 @@ extern const char *const tds_type_names[256];
 #define is_fixed_type(x)      ((tds_type_flags_ms[x] & TDS_TYPEFLAG_FIXED)    != 0)
 #define is_nullable_type(x)   ((tds_type_flags_ms[x] & TDS_TYPEFLAG_NULLABLE) != 0)
 #define is_variable_type(x)   ((tds_type_flags_ms[x] & TDS_TYPEFLAG_VARIABLE) != 0)
+#define is_variant_inner_type(x)   ((tds_type_flags_ms[x] & TDS_TYPEFLAG_VARIANT) != 0)
 
 
 #define is_blob_type(x)       ((x)==SYBTEXT || (x)==SYBIMAGE || (x)==SYBNTEXT)
@@ -465,6 +468,8 @@ bool is_tds_type_valid(int type)
 #define TDS_STR_ENCRYPTION_REQUIRE "require"
 /* Defines to enable optional GSSAPI delegation */
 #define TDS_GSSAPI_DELEGATION "enable gssapi delegation"
+/* Mutual authentication */
+#define TDS_STR_MUTUAL_AUTHENTICATION "mutual authentication"
 /* Kerberos realm name */
 #define TDS_STR_REALM	"realm"
 /* Kerberos SPN */
@@ -551,6 +556,7 @@ typedef struct tds_login
 	unsigned int bulk_copy:1;	/**< if bulk copy should be enabled */
 	unsigned int suppress_language:1;
 	unsigned int gssapi_use_delegation:1;
+	unsigned int mutual_authentication:1;
 	unsigned int use_ntlmv2:1;
 	unsigned int use_ntlmv2_specified:1;
 	unsigned int use_lanman:1;
@@ -622,14 +628,13 @@ typedef struct tds_bcpcoldata
 {
 	TDS_UCHAR *data;
 	TDS_INT    datalen;
-	TDS_INT    is_null;
+	bool       is_null;
 } BCPCOLDATA;
 
 
 typedef TDSRET  tds_func_get_info(TDSSOCKET *tds, TDSCOLUMN *col);
 typedef TDSRET  tds_func_get_data(TDSSOCKET *tds, TDSCOLUMN *col);
 typedef TDS_INT tds_func_row_len(TDSCOLUMN *col);
-typedef unsigned tds_func_put_info_len(TDSSOCKET *tds, TDSCOLUMN *col);
 typedef TDSRET  tds_func_put_info(TDSSOCKET *tds, TDSCOLUMN *col);
 typedef TDSRET  tds_func_put_data(TDSSOCKET *tds, TDSCOLUMN *col, int bcp7);
 typedef int     tds_func_check(const TDSCOLUMN *col);
@@ -639,12 +644,6 @@ typedef struct tds_column_funcs
 	tds_func_get_info *get_info;
 	tds_func_get_data *get_data;
 	tds_func_row_len  *row_len;
-	/**
-	 * Returns metadata column information size.
-	 * \tds
-	 * \param col  column to send
-	 */
-	tds_func_put_info_len *put_info_len;
 	/**
 	 * Send metadata column information to server.
 	 * \tds
@@ -725,6 +724,7 @@ struct tds_column
 	unsigned char column_hidden:1;
 	unsigned char column_output:1;
 	unsigned char column_timestamp:1;
+	unsigned char column_computed:1;
 	TDS_UCHAR column_collation[5];
 
 	/* additional fields flags for compute results */
@@ -1047,6 +1047,8 @@ typedef struct tds_authentication
 {
 	uint8_t *packet;
 	int packet_len;
+	/* TDS_MSG_TOKEN type, for TDS5 */
+	uint16_t msg_type;
 	TDSRET (*free)(TDSCONNECTION* conn, struct tds_authentication * auth);
 	TDSRET (*handle_next)(TDSSOCKET * tds, struct tds_authentication * auth, size_t len);
 } TDSAUTHENTICATION;
@@ -1054,10 +1056,30 @@ typedef struct tds_authentication
 typedef struct tds_packet
 {
 	struct tds_packet *next;
-	short sid;
-	unsigned len, capacity;
+	uint16_t sid;
+
+#if ENABLE_ODBC_MARS
+	/**
+	 * Data before TDS data, currently can be 0 or sizeof(TDS72_SMP_HEADER)
+	 */
+	uint8_t data_start;
+#endif
+
+	/**
+	 * data length, this does not account SMP header, only TDS part
+	 */
+	unsigned data_len;
+	unsigned capacity;
 	unsigned char buf[1];
 } TDSPACKET;
+
+#if ENABLE_ODBC_MARS
+#define tds_packet_zero_data_start(pkt) do { (pkt)->data_start = 0; } while(0)
+#define tds_packet_get_data_start(pkt) ((pkt)->data_start)
+#else
+#define tds_packet_zero_data_start(pkt) do { } while(0)
+#define tds_packet_get_data_start(pkt) 0
+#endif
 
 typedef struct tds_poll_wakeup
 {
@@ -1109,14 +1131,15 @@ struct tds_connection
 	TDSPACKET *send_packets;
 	unsigned send_pos, recv_pos;
 
-	tds_mutex list_mtx;
 #define BUSY_SOCKET ((TDSSOCKET*)(TDS_UINTPTR)1)
 #define TDSSOCKET_VALID(tds) (((TDS_UINTPTR)(tds)) > 1)
 	struct tds_socket **sessions;
 	unsigned num_sessions;
+#endif
+	tds_mutex list_mtx;
+
 	unsigned num_cached_packets;
 	TDSPACKET *packet_cache;
-#endif
 
 	int spid;
 	int client_spid;
@@ -1157,6 +1180,7 @@ struct tds_socket
 	 * Points to sending packet buffer.
 	 * Output buffer can contain additional data before the raw TDS packet
 	 * so this buffer can point some bytes after send_packet->buf.
+	 * Specifically this will point to send_packet->buf + send_packet->data_start.
 	 */
 	unsigned char *out_buf;
 
@@ -1171,9 +1195,31 @@ struct tds_socket
 	unsigned char in_flag;		/**< input buffer type */
 	unsigned char out_flag;		/**< output buffer type */
 
+	unsigned frozen;
+	/**
+	 * list of packets frozen, points to first one.
+	 * send_packet is the last packet in the list.
+	 */
+	TDSPACKET *frozen_packets;
+
 #if ENABLE_ODBC_MARS
-	short sid;
+	/** SID of MARS session.
+	 * ==0  Not in a MARS session or first session
+	 * >0   SID of MARS session valid.
+	 */
+	uint16_t sid;
+
+	/**
+	 * This condition will be signaled by the network thread on packet
+	 * received or sent for this session
+	 */
 	tds_condition packet_cond;
+
+	/**
+	 * Packet we are trying to send to network.
+	 * This field should be protected by conn->list_mtx
+	 */
+	TDSPACKET *sending_packet;
 	TDS_UINT recv_seq;
 	TDS_UINT send_seq;
 	TDS_UINT recv_wnd;
@@ -1358,6 +1404,7 @@ TDSRET tds_submit_rollback(TDSSOCKET *tds, int cont);
 TDSRET tds_submit_commit(TDSSOCKET *tds, int cont);
 TDSRET tds_disconnect(TDSSOCKET * tds);
 size_t tds_quote_id(TDSSOCKET * tds, char *buffer, const char *id, int idlen);
+size_t tds_quote_id_rpc(TDSSOCKET * tds, char *buffer, const char *id, int idlen);
 size_t tds_quote_string(TDSSOCKET * tds, char *buffer, const char *str, int len);
 const char *tds_skip_comment(const char *s);
 const char *tds_skip_quoted(const char *s);
@@ -1395,12 +1442,14 @@ TDSRET tds_process_simple_query(TDSSOCKET * tds);
 int tds5_send_optioncmd(TDSSOCKET * tds, TDS_OPTION_CMD tds_command, TDS_OPTION tds_option, TDS_OPTION_ARG * tds_argument,
 			TDS_INT * tds_argsize);
 TDSRET tds_process_tokens(TDSSOCKET * tds, /*@out@*/ TDS_INT * result_type, /*@out@*/ int *done_flags, unsigned flag);
-int determine_adjusted_size(const TDSICONV * char_conv, int size);
 
 
 /* data.c */
 void tds_set_param_type(TDSCONNECTION * conn, TDSCOLUMN * curcol, TDS_SERVER_TYPE type);
 void tds_set_column_type(TDSCONNECTION * conn, TDSCOLUMN * curcol, TDS_SERVER_TYPE type);
+#ifdef WORDS_BIGENDIAN
+void tds_swap_datatype(int coltype, void *b);
+#endif
 
 
 /* tds_convert.c */
@@ -1449,8 +1498,12 @@ char *tds_strndup(const void *s, TDS_INTPTR len);
 
 
 /* log.c */
-void tdsdump_off(void);
-void tdsdump_on(void);
+typedef struct tdsdump_off_item {
+	struct tdsdump_off_item *next;
+	tds_thread_id thread_id;
+} TDSDUMP_OFF_ITEM;
+void tdsdump_off(TDSDUMP_OFF_ITEM *off_item);
+void tdsdump_on(TDSDUMP_OFF_ITEM *off_item);
 int tdsdump_isopen(void);
 #include <freetds/popvis.h>
 int tdsdump_open(const char *filename);
@@ -1509,11 +1562,51 @@ int tds_read_packet(TDSSOCKET * tds);
 TDSRET tds_write_packet(TDSSOCKET * tds, unsigned char final);
 #if ENABLE_ODBC_MARS
 int tds_append_cancel(TDSSOCKET *tds);
+TDSRET tds_append_syn(TDSSOCKET *tds);
 TDSRET tds_append_fin(TDSSOCKET *tds);
 #else
 int tds_put_cancel(TDSSOCKET * tds);
 #endif
 
+typedef struct tds_freeze {
+	/** which socket we refer to */
+	TDSSOCKET *tds;
+	/** first packet frozen */
+	TDSPACKET *pkt;
+	/** position in pkt */
+	unsigned pkt_pos;
+	/** length size (0, 1, 2 or 4) */
+	unsigned size_len;
+} TDSFREEZE;
+
+void tds_freeze(TDSSOCKET *tds, TDSFREEZE *freeze, unsigned size_len);
+size_t tds_freeze_written(TDSFREEZE *freeze);
+TDSRET tds_freeze_abort(TDSFREEZE *freeze);
+TDSRET tds_freeze_close(TDSFREEZE *freeze);
+TDSRET tds_freeze_close_len(TDSFREEZE *freeze, int32_t size);
+
+static void inline
+tds_set_current_send_packet(TDSSOCKET *tds, TDSPACKET *pkt)
+{
+	tds->send_packet = pkt;
+	tds->out_buf = pkt->buf + tds_packet_get_data_start(pkt);
+}
+
+/* Macros to allow some indentation of the packets.
+ *
+ * The 3 nested fake loops require some explanation:
+ * - first is to allows to declare variables;
+ * - second is to force using brackets;
+ * - third is to avoids that a break inside will skip the close.
+ */
+#define TDS_START_LEN_GENERIC(tds_socket, len) do { \
+	TDSFREEZE current_freeze[1]; \
+	tds_freeze((tds_socket), current_freeze, (len)); do { do
+#define TDS_END_LEN while(0); } while(tds_freeze_close(current_freeze), 0); } while(0);
+
+#define TDS_START_LEN_TINYINT(tds_socket) TDS_START_LEN_GENERIC(tds_socket, 1)
+#define TDS_START_LEN_USMALLINT(tds_socket) TDS_START_LEN_GENERIC(tds_socket, 2)
+#define TDS_START_LEN_UINT(tds_socket) TDS_START_LEN_GENERIC(tds_socket, 4)
 
 /* vstrbuild.c */
 TDSRET tds_vstrbuild(char *buffer, int buflen, int *resultlen, const char *text, int textlen, const char *formats, int formatlen,
@@ -1537,6 +1630,7 @@ TDSAUTHENTICATION * tds_gss_get_auth(TDSSOCKET * tds);
 #else
 TDSAUTHENTICATION * tds_sspi_get_auth(TDSSOCKET * tds);
 #endif
+TDSRET tds5_gss_send(TDSSOCKET *tds);
 
 
 /* random.c */
@@ -1545,7 +1639,12 @@ void tds_random_buffer(unsigned char *out, int len);
 
 /* sec_negotiate.c */
 TDSAUTHENTICATION * tds5_negotiate_get_auth(TDSSOCKET * tds);
-void tds5_negotiate_set_msg_type(TDSSOCKET * tds, TDSAUTHENTICATION * auth, unsigned msg_type);
+static inline
+void tds5_negotiate_set_msg_type(TDSAUTHENTICATION * tds_auth, unsigned msg_type)
+{
+	if (tds_auth)
+		tds_auth->msg_type = msg_type;
+}
 
 
 /* bulk.c */
@@ -1594,6 +1693,8 @@ bool tds_capability_enabled(const TDS_CAPABILITY_TYPE *cap, unsigned cap_num)
 }
 #define tds_capability_has_req(conn, cap) \
 	tds_capability_enabled(&conn->capabilities.types[0], cap)
+#define tds_capability_has_res(conn, cap) \
+	tds_capability_enabled(&conn->capabilities.types[1], cap)
 
 #define IS_TDS42(x) (x->tds_version==0x402)
 #define IS_TDS46(x) (x->tds_version==0x406)

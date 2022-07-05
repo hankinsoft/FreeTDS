@@ -33,7 +33,7 @@
 #include <freetds/tls.h>
 #include <freetds/checks.h>
 #include <freetds/utils/string.h>
-#include "replacements.h"
+#include <freetds/replacements.h>
 #include <freetds/enum_cap.h>
 #include <freetds/utils.h>
 
@@ -1066,13 +1066,14 @@ tds_alloc_packet(void *buf, unsigned len)
 {
 	TDSPACKET *packet = (TDSPACKET *) malloc(len + TDS_OFFSET(TDSPACKET, buf));
 	if (TDS_LIKELY(packet)) {
-		packet->len = 0;
+		tds_packet_zero_data_start(packet);
+		packet->data_len = 0;
 		packet->capacity = len;
 		packet->sid = 0;
 		packet->next = NULL;
 		if (buf) {
 			memcpy(packet->buf, buf, len);
-			packet->len = len;
+			packet->data_len = len;
 		}
 	}
 	return packet;
@@ -1117,12 +1118,12 @@ tds_deinit_connection(TDSCONNECTION *conn)
 	free(conn->product_name);
 	free(conn->server);
 	tds_free_env(conn);
-#if ENABLE_ODBC_MARS
+	tds_free_packets(conn->packet_cache);
 	tds_mutex_free(&conn->list_mtx);
+#if ENABLE_ODBC_MARS
 	tds_free_packets(conn->packets);
 	tds_free_packets(conn->recv_packet);
 	tds_free_packets(conn->send_packets);
-	tds_free_packets(conn->packet_cache);
 	free(conn->sessions);
 #endif
 }
@@ -1141,9 +1142,10 @@ tds_init_connection(TDSCONNECTION *conn, TDSCONTEXT *context, unsigned int bufsi
 	if (tds_iconv_alloc(conn))
 		goto Cleanup;
 
-#if ENABLE_ODBC_MARS
 	if (tds_mutex_init(&conn->list_mtx))
 		goto Cleanup;
+
+#if ENABLE_ODBC_MARS
 	TEST_CALLOC(conn->sessions, TDSSOCKET*, 64);
 	conn->num_sessions = 64;
 #endif
@@ -1158,6 +1160,8 @@ Cleanup:
 static TDSSOCKET *
 tds_init_socket(TDSSOCKET * tds_socket, unsigned int bufsize)
 {
+	TDSPACKET *pkt;
+
 	tds_socket->parent = NULL;
 
 	tds_socket->recv_packet = tds_alloc_packet(NULL, bufsize);
@@ -1165,10 +1169,10 @@ tds_init_socket(TDSSOCKET * tds_socket, unsigned int bufsize)
 		goto Cleanup;
 	tds_socket->in_buf = tds_socket->recv_packet->buf;
 
-	tds_socket->send_packet = tds_alloc_packet(NULL, bufsize + TDS_ADDITIONAL_SPACE);
-	if (!tds_socket->send_packet)
+	pkt = tds_alloc_packet(NULL, bufsize + TDS_ADDITIONAL_SPACE);
+	if (!pkt)
 		goto Cleanup;
-	tds_socket->out_buf = tds_socket->send_packet->buf;
+	tds_set_current_send_packet(tds_socket, pkt);
 
 	tds_socket->out_buf_max = bufsize;
 
@@ -1184,12 +1188,15 @@ tds_init_socket(TDSSOCKET * tds_socket, unsigned int bufsize)
 	tds_socket->sid = 0;
 	if (tds_cond_init(&tds_socket->packet_cond))
 		goto Cleanup;
+
+	tds_socket->recv_seq = 0;
+	tds_socket->send_seq = 0;
+	tds_socket->recv_wnd = 4;
+	tds_socket->send_wnd = 4;
 #endif
 	return tds_socket;
 
       Cleanup:
-	tds_free_packets(tds_socket->recv_packet);
-	tds_free_packets(tds_socket->send_packet);
 	return NULL;
 }
 
@@ -1253,6 +1260,31 @@ tds_alloc_socket(TDSCONTEXT * context, unsigned int bufsize)
 	return NULL;
 }
 
+static bool
+tds_alloc_new_sid(TDSSOCKET *tds)
+{
+	uint16_t sid;
+	TDSCONNECTION *conn = tds->conn;
+
+	tds_mutex_lock(&conn->list_mtx);
+	for (sid = 1; sid < conn->num_sessions; ++sid)
+		if (!conn->sessions[sid])
+			break;
+	if (sid == conn->num_sessions) {
+		/* extend array */
+		TDSSOCKET **s = (TDSSOCKET **) TDS_RESIZE(conn->sessions, sid+64);
+		if (!s)
+			goto error;
+		memset(s + conn->num_sessions, 0, sizeof(*s) * 64);
+		conn->num_sessions += 64;
+	}
+	conn->sessions[sid] = tds;
+	tds->sid = sid;
+error:
+	tds_mutex_unlock(&conn->list_mtx);
+	return tds->sid != 0;
+}
+
 TDSSOCKET *
 tds_alloc_additional_socket(TDSCONNECTION *conn)
 {
@@ -1260,14 +1292,26 @@ tds_alloc_additional_socket(TDSCONNECTION *conn)
 	if (!IS_TDS72_PLUS(conn) || !conn->mars)
 		return NULL;
 
-	tds = tds_alloc_socket_base(conn->env.block_size);
+	tds = tds_alloc_socket_base(sizeof(TDS72_SMP_HEADER) + conn->env.block_size);
 	if (!tds)
 		return NULL;
+	tds->send_packet->data_start = sizeof(TDS72_SMP_HEADER);
+	tds->out_buf = tds->send_packet->buf + sizeof(TDS72_SMP_HEADER);
+	tds->out_buf_max -= sizeof(TDS72_SMP_HEADER);
 
-	tds->sid = -1;
 	tds->conn = conn;
+	if (!tds_alloc_new_sid(tds))
+		goto Cleanup;
+
 	tds->state = TDS_IDLE;
+	if (TDS_FAILED(tds_append_syn(tds)))
+		goto Cleanup;
+
 	return tds;
+
+      Cleanup:
+	tds_free_socket(tds);
+	return NULL;
 }
 #else /* !ENABLE_ODBC_MARS */
 TDSSOCKET *
@@ -1292,24 +1336,33 @@ TDSSOCKET *
 tds_realloc_socket(TDSSOCKET * tds, size_t bufsize)
 {
 	TDSPACKET *packet;
+#if ENABLE_ODBC_MARS
+	size_t smp_hdr_len = tds->conn->mars ? sizeof(TDS72_SMP_HEADER) : 0;
+#else
+	enum { smp_hdr_len = 0 };
+#endif
 
 	assert(tds && tds->out_buf && tds->send_packet);
 
 	if (bufsize < 512)
 		bufsize = 512;
 
-	tds->conn->env.block_size = bufsize;
-
-	if (tds->out_pos > bufsize)
+	/* prevent nasty memory conditions, server should send the request at
+	 * the beginning only */
+	if (tds->out_pos > bufsize || tds->frozen)
 		return NULL;
 
-	packet = tds_realloc_packet(tds->send_packet, bufsize + TDS_ADDITIONAL_SPACE);
+	tds->conn->env.block_size = bufsize;
+
+	packet = tds_realloc_packet(tds->send_packet, smp_hdr_len + bufsize + TDS_ADDITIONAL_SPACE);
 	if (packet == NULL)
 		return NULL;
 
-	tds->out_buf = packet->buf;
+#if ENABLE_ODBC_MARS
+	packet->data_start = smp_hdr_len;
+#endif
 	tds->out_buf_max = bufsize;
-	tds->send_packet = packet;
+	tds_set_current_send_packet(tds, packet);
 	return tds;
 }
 
@@ -1318,26 +1371,25 @@ static void
 tds_connection_remove_socket(TDSCONNECTION *conn, TDSSOCKET *tds)
 {
 	unsigned n;
-	int must_free = 1;
+	bool must_free_connection = true;
 	tds_mutex_lock(&conn->list_mtx);
-	if (tds->sid >= 0 && tds->sid < conn->num_sessions)
+	if (tds->sid < conn->num_sessions)
 		conn->sessions[tds->sid] = NULL;
 	for (n = 0; n < conn->num_sessions; ++n)
 		if (TDSSOCKET_VALID(conn->sessions[n])) {
-			must_free = 0;
+			must_free_connection = false;
 			break;
 		}
-	if (!must_free) {
+	if (!must_free_connection) {
 		/* tds use connection member so must be valid */
 		tds_append_fin(tds);
 	}
 	tds_mutex_unlock(&conn->list_mtx);
 
 	/* detach entirely */
-	tds->sid = -1;
 	tds->conn = NULL;
 
-	if (must_free)
+	if (must_free_connection)
 		tds_free_connection(conn);
 }
 #else
@@ -1382,7 +1434,10 @@ tds_free_socket(TDSSOCKET * tds)
 
 	tds_connection_remove_socket(tds->conn, tds);
 	tds_free_packets(tds->recv_packet);
-	tds_free_packets(tds->send_packet);
+	if (tds->frozen_packets)
+		tds_free_packets(tds->frozen_packets);
+	else
+		tds_free_packets(tds->send_packet);
 	free(tds);
 }
 

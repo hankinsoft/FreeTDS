@@ -52,7 +52,6 @@ static int collate2charset(TDSCONNECTION * conn, TDS_UCHAR collate[5]);
 static size_t skip_one_input_sequence(iconv_t cd, const TDS_ENCODING * charset, const char **input, size_t * input_size);
 static int tds_iconv_info_init(TDSICONV * char_conv, int client_canonic, int server_canonic);
 static int tds_iconv_init(void);
-static int tds_canonical_charset(const char *charset_name);
 static void _iconv_close(iconv_t * cd);
 static void tds_iconv_info_close(TDSICONV * char_conv);
 
@@ -64,15 +63,27 @@ static void tds_iconv_info_close(TDSICONV * char_conv);
  */
 
 #define TDS_ICONV_ENCODING_TABLES
-#include "encodings.h"
+#include <freetds/encodings.h>
 
 /* this will contain real iconv names */
-static const char *iconv_names[sizeof(canonic_charsets) / sizeof(canonic_charsets[0])];
+static const char *iconv_names[TDS_VECTOR_SIZE(canonic_charsets)];
 static int iconv_initialized = 0;
 static const char *ucs2name;
 
 enum
 { POS_ISO1, POS_UTF8, POS_UCS2LE, POS_UCS2BE };
+
+static const struct {
+	uint32_t len;
+	/* this field must be aligned at least to 2 bytes */
+	char data[12];
+} test_strings[4] = {
+	/* same string in required charsets */
+	{ 4, "Ao\xD3\xE5" },
+	{ 6, "Ao\xC3\x93\xC3\xA5" },
+	{ 8, "A\x00o\x000\xD3\x00\xE5\x00" },
+	{ 8, "\x00" "A\x00o\x000\xD3\x00\xE5" },
+};
 
 /**
  * Initialize charset searching for UTF-8, UCS-2 and ISO8859-1
@@ -186,6 +197,35 @@ tds_iconv_init(void)
 	for (i = 0; i < 4; ++i)
 		tdsdump_log(TDS_DBG_INFO1, "local name for %s is %s\n", canonic_charsets[i].name,
 			    iconv_names[i] ? iconv_names[i] : "(null)");
+
+	/* base conversions checks */
+	for (i = 0; i < 4 * 4; ++i) {
+		const int from = i / 4;
+		const int to = i % 4;
+		char ob[16];
+		size_t il, ol;
+		ICONV_CONST char *pib;
+		char *pob;
+		size_t res;
+
+		if (!iconv_names[from] || !iconv_names[to])
+			continue;
+		cd = tds_sys_iconv_open(iconv_names[to], iconv_names[from]);
+		if (cd == (iconv_t) -1)
+			return 1;
+
+		pib = (ICONV_CONST char *) test_strings[from].data;
+		il = test_strings[from].len;
+		pob = ob;
+		ol = sizeof(ob);
+		res = tds_sys_iconv(cd, &pib, &il, &pob, &ol);
+		tds_sys_iconv_close(cd);
+
+		if (res != 0
+		    || sizeof(ob) - ol != test_strings[to].len
+		    || memcmp(ob, test_strings[to].data, test_strings[to].len) != 0)
+			return 1;
+	}
 
 	/* success (it should always occurs) */
 	return 0;
@@ -333,7 +373,7 @@ tds_iconv_open(TDSCONNECTION * conn, const char *charset, int use_utf16)
 	/* initialize */
 	if (!iconv_initialized) {
 		if ((ret = tds_iconv_init()) > 0) {
-			static const char names[][12] = { "ISO 8859-1", "UTF-8" };
+			static const char names[][12] = { "ISO 8859-1", "UCS-2" };
 			assert(ret < 3);
 			tdsdump_log(TDS_DBG_FUNC, "error: tds_iconv_init() returned %d; "
 						  "could not find a name for %s that your iconv accepts.\n"
@@ -598,12 +638,13 @@ tds_iconv(TDSSOCKET * tds, TDSICONV * conv, TDS_ICONV_DIRECTION io,
 		size_t len = *inbytesleft < *outbytesleft ? *inbytesleft : *outbytesleft;
 
 		memcpy(*outbuf, *inbuf, len);
-		errno = *inbytesleft > *outbytesleft ? E2BIG : 0;
+		conv_errno = *inbytesleft > *outbytesleft ? E2BIG : 0;
 		*inbytesleft -= len;
 		*outbytesleft -= len;
 		*inbuf += len;
 		*outbuf += len;
-		return 0;
+		errno = conv_errno;
+		return conv_errno ? (size_t) -1 : 0;
 	}
 
 	/*
@@ -713,7 +754,7 @@ tds_iconv(TDSSOCKET * tds, TDSICONV * conv, TDS_ICONV_DIRECTION io,
 /**
  * Get a iconv info structure, allocate and initialize if needed
  */
-static TDSICONV *
+TDSICONV *
 tds_iconv_get_info(TDSCONNECTION * conn, int canonic_client, int canonic_server)
 {
 	TDSICONV *info;
@@ -918,36 +959,18 @@ skip_charsize:
 	return charsize;
 }
 
-static int
-lookup_canonic(const CHARACTER_SET_ALIAS aliases[], const char *charset_name)
-{
-	int i;
-
-	for (i = 0; aliases[i].alias; ++i) {
-		if (0 == strcmp(charset_name, aliases[i].alias))
-			return aliases[i].canonic;
-	}
-
-	return -1;
-}
+#include <freetds/charset_lookup.h>
 
 /**
  * Determine canonical iconv character set.
  * \returns canonical position, or -1 if lookup failed.
  * \remarks Returned name can be used in bytes_per_char(), above.
  */
-static int
+int
 tds_canonical_charset(const char *charset_name)
 {
-	int res;
-
-	/* search in alternative */
-	res = lookup_canonic(iconv_aliases, charset_name);
-	if (res >= 0)
-		return res;
-
-	/* search in sybase */
-	return lookup_canonic(sybase_aliases, charset_name);
+	const struct charset_alias *c = charset_lookup(charset_name, strlen(charset_name));
+	return c ? c->canonic : -1;
 }
 
 /**
@@ -973,11 +996,20 @@ collate2charset(TDSCONNECTION * conn, TDS_UCHAR collate[5])
 {
 	int cp = 0;
 	const int sql_collate = collate[4];
+	/* extract 16 bit of LCID (it's 20 bits but higher 4 are just variations) */
 	const int lcid = TDS_GET_UA2LE(collate);
+
+	/* starting with bit 20 (little endian, so 3rd byte bit 4) there are 8 bits:
+	 * fIgnoreCase fIgnoreAccent fIgnoreKana fIgnoreWidth fBinary fBinary2 fUTF8 FRESERVEDBIT
+	 * so fUTF8 is on the 4th byte bit 2 */
+	if ((collate[3] & 0x4) != 0 && IS_TDS74_PLUS(conn))
+		return TDS_CHARSET_UTF_8;
 
 	/*
 	 * The table from the MSQLServer reference "Windows Collation Designators" 
-	 * and from " NLS Information for Microsoft Windows XP"
+	 * and from " NLS Information for Microsoft Windows XP".
+	 *
+	 * See also https://go.microsoft.com/fwlink/?LinkId=119987 [MSDN-SQLCollation]
 	 */
 
 	switch (sql_collate) {

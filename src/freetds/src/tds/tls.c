@@ -57,7 +57,7 @@
 #include <freetds/utils/string.h>
 #include <freetds/tls.h>
 #include <freetds/alloca.h>
-#include "replacements.h"
+#include <freetds/replacements.h>
 
 #include <assert.h>
 
@@ -547,6 +547,9 @@ tds_ssl_init(TDSSOCKET *tds)
 
 	tdsdump_log(TDS_DBG_INFO1, "handshake succeeded!!\n");
 
+	/* some TLS implementations send some sort of paddind at the end, remove it */
+	tds->in_pos = tds->in_len;
+
 	gnutls_transport_set_ptr(session, tds->conn);
 	gnutls_transport_set_pull_function(session, tds_pull_func);
 	gnutls_transport_set_push_function(session, tds_push_func);
@@ -576,6 +579,7 @@ tds_ssl_deinit(TDSCONNECTION *conn)
 		gnutls_certificate_free_credentials((gnutls_certificate_credentials_t) conn->tls_credentials);
 		conn->tls_credentials = NULL;
 	}
+	conn->encrypt_single_packet = 0;
 }
 
 #else
@@ -822,18 +826,25 @@ tds_check_wildcard_test(void)
 static int
 check_name_match(ASN1_STRING *name, const char *hostname)
 {
-	char *name_utf8 = NULL;
+	char *name_utf8 = NULL, *tmp_name;
 	int ret, name_len;
 
 	name_len = ASN1_STRING_to_UTF8((unsigned char **) &name_utf8, name);
 	if (name_len < 0)
 		return 0;
 
+	tmp_name = tds_strndup(name_utf8, name_len);
+	OPENSSL_free(name_utf8);
+	if (!tmp_name)
+		return 0;
+
+	name_utf8 = tmp_name;
+
 	tdsdump_log(TDS_DBG_INFO1, "Got name %s\n", name_utf8);
 	ret = 0;
 	if (strlen(name_utf8) == name_len && check_wildcard(name_utf8, hostname))
 		ret = 1;
-	OPENSSL_free(name_utf8);
+	free(name_utf8);
 	return ret;
 }
 
@@ -1047,6 +1058,9 @@ tds_ssl_init(TDSSOCKET *tds)
 
 	tdsdump_log(TDS_DBG_INFO1, "handshake succeeded!!\n");
 
+	/* some TLS implementations send some sort of paddind at the end, remove it */
+	tds->in_pos = tds->in_len;
+
 	BIO_set_init(b2, 1);
 	BIO_set_data(b2, tds->conn);
 	SSL_set_bio(con, b2, b2);
@@ -1082,6 +1096,7 @@ tds_ssl_deinit(TDSCONNECTION *conn)
 		SSL_CTX_free((SSL_CTX *) conn->tls_ctx);
 		conn->tls_ctx = NULL;
 	}
+	conn->encrypt_single_packet = 0;
 }
 #endif
 

@@ -14,44 +14,98 @@
 
 @implementation FreeTDSKitTests
 
-- (void) testConnect
+- (void) testSQLConnect
 {
+    dberrhandle(&err_handler);
+    dbmsghandle(&msg_handler);
+
     DBPROCESS                   * dbProc;
 
     LOGINREC * login = dblogin();
 
     DBSETLCHARSET(login, "UTF-8");
-    DBSETLPWD(login,  [@"" UTF8String]);
-    DBSETLUSER(login, [@"" UTF8String]);
+    DBSETLPWD(login,  "nh{Zd?*8ZU@Y}Bb#");
+    DBSETLUSER(login, "sqlproro");
     DBSETLSECURE(login);
     DBSETLAPP(login,  "SQLPro");
     DBSETLVERSION(login, DBVERSION_74);
 
+    dbsetlbool(login, 0, DBSETNTLMV2);
+
     [FreeTDSHelpers setLogin: login
                      ciphers: @"ALL"];
-/*
-    [FreeTDSHelpers setLogin: login
-             encryptionLevel: mssqlDBC.encryptionLevel];
 
     [FreeTDSHelpers setLogin: login
-                 enableTLSv1: mssqlDBC.enableTLSv1];
+             encryptionLevel: 0];
 
-    // If we have a newPassword, then set it.
-    if(updatedPassword.length)
-    {
-        [FreeTDSHelpers setLogin: login
-                  updatePassword: updatedPassword];
-    } // End of we have an updatedUserPassword
-*/
+    [FreeTDSHelpers setLogin: login
+                 enableTLSv1: NO];
 
-    DBSETLDBNAME(login, "");
+    DBSETLDBNAME(login, "sqlprosample");
 
-    dbProc = dbopen(login, "");
+    dbProc = dbopen(login, "sqlprosample.database.windows.net:1433");
 
-    if(NULL == dbProc)
-    {
-        NSLog(@"NO proc");
-    }
+    // Free the login
+    dbloginfree(login);
+    XCTAssertTrue(NULL != dbProc, @"dbProc should not be nil");
+} // End of testSQLConnect
+
+- (void) testAzureADConnect
+{
+    dberrhandle(&err_handler);
+    dbmsghandle(&msg_handler);
+
+    DBPROCESS                   * dbProc;
+
+    LOGINREC * login = dblogin();
+
+    DBSETLCHARSET(login, "UTF-8");
+    DBSETLPWD(login,  "nh{Zd?*8ZU@Y}Bb#");
+    DBSETLUSER(login, "freetds@kylehankinsoft.onmicrosoft.com");
+    DBSETLSECURE(login);
+    DBSETLAPP(login,  "SQLPro");
+    DBSETLVERSION(login, DBVERSION_74);
+
+    dbsetlbool(login, 0, DBSETNTLMV2);
+
+    [FreeTDSHelpers setLogin: login
+                     ciphers: @"ALL"];
+
+    [FreeTDSHelpers setLogin: login
+             encryptionLevel: 0];
+
+    [FreeTDSHelpers setLogin: login
+                 enableTLSv1: NO];
+
+    DBSETLDBNAME(login, "sqlprosample");
+
+    dbProc = dbopen(login, "sqlprosample.database.windows.net:1433");
+
+    // Free the login
+    dbloginfree(login);
+    XCTAssertTrue(NULL != dbProc, @"dbProc should not be nil");
+} // End of testSQLConnect
+
+int msg_handler(DBPROCESS *dbproc,
+                DBINT msgno,
+                int msgstate,
+                int severity,
+                char *msgtext,
+                char *srvname,
+                char *procname,
+                int line)
+{
+    return 0;
+}
+
+int err_handler(DBPROCESS * dbproc,
+                int severity,
+                int dberr,
+                int oserr,
+                char *dberrstr,
+                char *oserrstr)
+{
+    return INT_CANCEL;
 }
 
 @end
