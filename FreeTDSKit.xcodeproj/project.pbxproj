@@ -111,34 +111,34 @@
 		7291DFBD1E1EF7CE00359D2C /* FreeTDSKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFB61E1EF66400359D2C /* FreeTDSKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD01E1FBA8000359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7291DFD11E1FBA8B00359D2C /* tds_sysdep_public.h in Headers */ = {isa = PBXBuildFile; fileRef = 7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		72AD134B2316FFB700C87C40 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133D2316FFB700C87C40 /* sleep.c */; };
-		72AD134C2316FFB700C87C40 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133D2316FFB700C87C40 /* sleep.c */; };
-		72AD134D2316FFB700C87C40 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133E2316FFB700C87C40 /* tdsstring.c */; };
-		72AD134E2316FFB700C87C40 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD133E2316FFB700C87C40 /* tdsstring.c */; };
-		72AD13512316FFB700C87C40 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13402316FFB700C87C40 /* md5.c */; };
-		72AD13522316FFB700C87C40 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13402316FFB700C87C40 /* md5.c */; };
-		72AD13532316FFB700C87C40 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13412316FFB700C87C40 /* threadsafe.c */; };
-		72AD13542316FFB700C87C40 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13412316FFB700C87C40 /* threadsafe.c */; };
-		72AD13552316FFB700C87C40 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13422316FFB700C87C40 /* dlist.c */; };
-		72AD13562316FFB700C87C40 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13422316FFB700C87C40 /* dlist.c */; };
-		72AD13572316FFB700C87C40 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13432316FFB700C87C40 /* win_mutex.c */; };
-		72AD13582316FFB700C87C40 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13432316FFB700C87C40 /* win_mutex.c */; };
-		72AD13592316FFB700C87C40 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13442316FFB700C87C40 /* bjoern-utf8.c */; };
-		72AD135A2316FFB700C87C40 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13442316FFB700C87C40 /* bjoern-utf8.c */; };
-		72AD135B2316FFB700C87C40 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13452316FFB700C87C40 /* md4.c */; };
-		72AD135C2316FFB700C87C40 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13452316FFB700C87C40 /* md4.c */; };
-		72AD135D2316FFB700C87C40 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13462316FFB700C87C40 /* des.c */; };
-		72AD135E2316FFB700C87C40 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13462316FFB700C87C40 /* des.c */; };
-		72AD135F2316FFB700C87C40 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13472316FFB700C87C40 /* tds_cond.c */; };
-		72AD13602316FFB700C87C40 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13472316FFB700C87C40 /* tds_cond.c */; };
-		72AD13612316FFB700C87C40 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13482316FFB700C87C40 /* getpassarg.c */; };
-		72AD13622316FFB700C87C40 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13482316FFB700C87C40 /* getpassarg.c */; };
-		72AD13632316FFB700C87C40 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13492316FFB700C87C40 /* hmac_md5.c */; };
-		72AD13642316FFB700C87C40 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13492316FFB700C87C40 /* hmac_md5.c */; };
-		72AD13652316FFB700C87C40 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD134A2316FFB700C87C40 /* net.c */; };
-		72AD13662316FFB700C87C40 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD134A2316FFB700C87C40 /* net.c */; };
 		72AD13692317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
 		72AD136A2317006400C87C40 /* iconv.c in Sources */ = {isa = PBXBuildFile; fileRef = 72AD13682317006400C87C40 /* iconv.c */; };
+		72FC01DD2874604A0035ED02 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01CF287460490035ED02 /* sleep.c */; };
+		72FC01DE2874604A0035ED02 /* sleep.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01CF287460490035ED02 /* sleep.c */; };
+		72FC01DF2874604A0035ED02 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D0287460490035ED02 /* dlist.c */; };
+		72FC01E02874604A0035ED02 /* dlist.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D0287460490035ED02 /* dlist.c */; };
+		72FC01E12874604A0035ED02 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D1287460490035ED02 /* tdsstring.c */; };
+		72FC01E22874604A0035ED02 /* tdsstring.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D1287460490035ED02 /* tdsstring.c */; };
+		72FC01E32874604A0035ED02 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D2287460490035ED02 /* hmac_md5.c */; };
+		72FC01E42874604A0035ED02 /* hmac_md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D2287460490035ED02 /* hmac_md5.c */; };
+		72FC01E52874604A0035ED02 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D3287460490035ED02 /* getpassarg.c */; };
+		72FC01E62874604A0035ED02 /* getpassarg.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D3287460490035ED02 /* getpassarg.c */; };
+		72FC01E72874604A0035ED02 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D42874604A0035ED02 /* net.c */; };
+		72FC01E82874604A0035ED02 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D42874604A0035ED02 /* net.c */; };
+		72FC01E92874604A0035ED02 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D52874604A0035ED02 /* des.c */; };
+		72FC01EA2874604A0035ED02 /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D52874604A0035ED02 /* des.c */; };
+		72FC01EB2874604A0035ED02 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D62874604A0035ED02 /* md5.c */; };
+		72FC01EC2874604A0035ED02 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D62874604A0035ED02 /* md5.c */; };
+		72FC01ED2874604A0035ED02 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D72874604A0035ED02 /* threadsafe.c */; };
+		72FC01EE2874604A0035ED02 /* threadsafe.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D72874604A0035ED02 /* threadsafe.c */; };
+		72FC01EF2874604A0035ED02 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D82874604A0035ED02 /* bjoern-utf8.c */; };
+		72FC01F02874604A0035ED02 /* bjoern-utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D82874604A0035ED02 /* bjoern-utf8.c */; };
+		72FC01F12874604A0035ED02 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D92874604A0035ED02 /* tds_cond.c */; };
+		72FC01F22874604A0035ED02 /* tds_cond.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01D92874604A0035ED02 /* tds_cond.c */; };
+		72FC01F52874604A0035ED02 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01DB2874604A0035ED02 /* md4.c */; };
+		72FC01F62874604A0035ED02 /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01DB2874604A0035ED02 /* md4.c */; };
+		72FC01F72874604A0035ED02 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01DC2874604A0035ED02 /* win_mutex.c */; };
+		72FC01F82874604A0035ED02 /* win_mutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 72FC01DC2874604A0035ED02 /* win_mutex.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -213,19 +213,6 @@
 		726D0F502873668E00092ACB /* FreeTDSKitTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FreeTDSKitTests.m; sourceTree = "<group>"; };
 		7291DFB61E1EF66400359D2C /* FreeTDSKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FreeTDSKit.h; sourceTree = "<group>"; };
 		7291DFCF1E1FBA8000359D2C /* tds_sysdep_public.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tds_sysdep_public.h; path = src/freetds/include/tds_sysdep_public.h; sourceTree = "<group>"; };
-		72AD133D2316FFB700C87C40 /* sleep.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sleep.c; path = src/freetds/src/utils/sleep.c; sourceTree = "<group>"; };
-		72AD133E2316FFB700C87C40 /* tdsstring.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdsstring.c; path = src/freetds/src/utils/tdsstring.c; sourceTree = "<group>"; };
-		72AD13402316FFB700C87C40 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = src/freetds/src/utils/md5.c; sourceTree = "<group>"; };
-		72AD13412316FFB700C87C40 /* threadsafe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = threadsafe.c; path = src/freetds/src/utils/threadsafe.c; sourceTree = "<group>"; };
-		72AD13422316FFB700C87C40 /* dlist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dlist.c; path = src/freetds/src/utils/dlist.c; sourceTree = "<group>"; };
-		72AD13432316FFB700C87C40 /* win_mutex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = win_mutex.c; path = src/freetds/src/utils/win_mutex.c; sourceTree = "<group>"; };
-		72AD13442316FFB700C87C40 /* bjoern-utf8.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "bjoern-utf8.c"; path = "src/freetds/src/utils/bjoern-utf8.c"; sourceTree = "<group>"; };
-		72AD13452316FFB700C87C40 /* md4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md4.c; path = src/freetds/src/utils/md4.c; sourceTree = "<group>"; };
-		72AD13462316FFB700C87C40 /* des.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = des.c; path = src/freetds/src/utils/des.c; sourceTree = "<group>"; };
-		72AD13472316FFB700C87C40 /* tds_cond.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tds_cond.c; path = src/freetds/src/utils/tds_cond.c; sourceTree = "<group>"; };
-		72AD13482316FFB700C87C40 /* getpassarg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getpassarg.c; path = src/freetds/src/utils/getpassarg.c; sourceTree = "<group>"; };
-		72AD13492316FFB700C87C40 /* hmac_md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hmac_md5.c; path = src/freetds/src/utils/hmac_md5.c; sourceTree = "<group>"; };
-		72AD134A2316FFB700C87C40 /* net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = net.c; path = src/freetds/src/utils/net.c; sourceTree = "<group>"; };
 		72AD13682317006400C87C40 /* iconv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = iconv.c; path = src/freetds/src/replacements/iconv.c; sourceTree = "<group>"; };
 		72B8CB001D1C4FEA000DE30C /* libcrypto.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcrypto.35.tbd; path = usr/lib/libcrypto.35.tbd; sourceTree = SDKROOT; };
 		72B8CB021D1C4FF0000DE30C /* libssl.35.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libssl.35.tbd; path = usr/lib/libssl.35.tbd; sourceTree = SDKROOT; };
@@ -237,6 +224,19 @@
 		72D6B8471D819BD700D8F697 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../../../../../../../../usr/local/Cellar/openssl/1.0.2h_1/lib/libssl.a; sourceTree = "<group>"; };
 		72F47B391D217F9400D9C207 /* libssl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libssl.tbd; path = usr/lib/libssl.tbd; sourceTree = SDKROOT; };
 		72F47B3B1D217F9C00D9C207 /* libcrypto.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcrypto.tbd; path = usr/lib/libcrypto.tbd; sourceTree = SDKROOT; };
+		72FC01CF287460490035ED02 /* sleep.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sleep.c; path = src/freetds/src/utils/sleep.c; sourceTree = "<group>"; };
+		72FC01D0287460490035ED02 /* dlist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dlist.c; path = src/freetds/src/utils/dlist.c; sourceTree = "<group>"; };
+		72FC01D1287460490035ED02 /* tdsstring.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdsstring.c; path = src/freetds/src/utils/tdsstring.c; sourceTree = "<group>"; };
+		72FC01D2287460490035ED02 /* hmac_md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hmac_md5.c; path = src/freetds/src/utils/hmac_md5.c; sourceTree = "<group>"; };
+		72FC01D3287460490035ED02 /* getpassarg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getpassarg.c; path = src/freetds/src/utils/getpassarg.c; sourceTree = "<group>"; };
+		72FC01D42874604A0035ED02 /* net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = net.c; path = src/freetds/src/utils/net.c; sourceTree = "<group>"; };
+		72FC01D52874604A0035ED02 /* des.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = des.c; path = src/freetds/src/utils/des.c; sourceTree = "<group>"; };
+		72FC01D62874604A0035ED02 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = src/freetds/src/utils/md5.c; sourceTree = "<group>"; };
+		72FC01D72874604A0035ED02 /* threadsafe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = threadsafe.c; path = src/freetds/src/utils/threadsafe.c; sourceTree = "<group>"; };
+		72FC01D82874604A0035ED02 /* bjoern-utf8.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "bjoern-utf8.c"; path = "src/freetds/src/utils/bjoern-utf8.c"; sourceTree = "<group>"; };
+		72FC01D92874604A0035ED02 /* tds_cond.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tds_cond.c; path = src/freetds/src/utils/tds_cond.c; sourceTree = "<group>"; };
+		72FC01DB2874604A0035ED02 /* md4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md4.c; path = src/freetds/src/utils/md4.c; sourceTree = "<group>"; };
+		72FC01DC2874604A0035ED02 /* win_mutex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = win_mutex.c; path = src/freetds/src/utils/win_mutex.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -452,19 +452,19 @@
 		72AD133C2316FF5F00C87C40 /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				72AD13442316FFB700C87C40 /* bjoern-utf8.c */,
-				72AD13462316FFB700C87C40 /* des.c */,
-				72AD13422316FFB700C87C40 /* dlist.c */,
-				72AD13482316FFB700C87C40 /* getpassarg.c */,
-				72AD13492316FFB700C87C40 /* hmac_md5.c */,
-				72AD13452316FFB700C87C40 /* md4.c */,
-				72AD13402316FFB700C87C40 /* md5.c */,
-				72AD134A2316FFB700C87C40 /* net.c */,
-				72AD133D2316FFB700C87C40 /* sleep.c */,
-				72AD13472316FFB700C87C40 /* tds_cond.c */,
-				72AD133E2316FFB700C87C40 /* tdsstring.c */,
-				72AD13412316FFB700C87C40 /* threadsafe.c */,
-				72AD13432316FFB700C87C40 /* win_mutex.c */,
+				72FC01D82874604A0035ED02 /* bjoern-utf8.c */,
+				72FC01D52874604A0035ED02 /* des.c */,
+				72FC01D0287460490035ED02 /* dlist.c */,
+				72FC01D3287460490035ED02 /* getpassarg.c */,
+				72FC01D2287460490035ED02 /* hmac_md5.c */,
+				72FC01DB2874604A0035ED02 /* md4.c */,
+				72FC01D62874604A0035ED02 /* md5.c */,
+				72FC01D42874604A0035ED02 /* net.c */,
+				72FC01CF287460490035ED02 /* sleep.c */,
+				72FC01D92874604A0035ED02 /* tds_cond.c */,
+				72FC01D1287460490035ED02 /* tdsstring.c */,
+				72FC01D72874604A0035ED02 /* threadsafe.c */,
+				72FC01DC2874604A0035ED02 /* win_mutex.c */,
 			);
 			name = utils;
 			sourceTree = "<group>";
@@ -640,53 +640,53 @@
 				721360251D1858A7006A3F33 /* read.c in Sources */,
 				721360221D1858A7006A3F33 /* packet.c in Sources */,
 				721360301D1858A7006A3F33 /* write.c in Sources */,
+				72FC01DD2874604A0035ED02 /* sleep.c in Sources */,
 				721360291D1858A7006A3F33 /* tds_checks.c in Sources */,
 				721360441D1858F1006A3F33 /* dbutil.c in Sources */,
+				72FC01EB2874604A0035ED02 /* md5.c in Sources */,
+				72FC01E12874604A0035ED02 /* tdsstring.c in Sources */,
+				72FC01E72874604A0035ED02 /* net.c in Sources */,
 				721360231D1858A7006A3F33 /* query.c in Sources */,
 				721360281D1858A7006A3F33 /* stream.c in Sources */,
 				721360411D1858F1006A3F33 /* dblib.c in Sources */,
 				721360451D1858F1006A3F33 /* rpc.c in Sources */,
+				72FC01EF2874604A0035ED02 /* bjoern-utf8.c in Sources */,
 				7203D12E1E1E8A8F00DC960E /* cryptohelper.m in Sources */,
 				721360161D1858A7006A3F33 /* getmac.c in Sources */,
 				72AD13692317006400C87C40 /* iconv.c in Sources */,
-				72AD135B2316FFB700C87C40 /* md4.c in Sources */,
-				72AD135D2316FFB700C87C40 /* des.c in Sources */,
 				721360471D1858F1006A3F33 /* xact.c in Sources */,
 				7213601B1D1858A7006A3F33 /* log.c in Sources */,
+				72FC01DF2874604A0035ED02 /* dlist.c in Sources */,
 				721360241D1858A7006A3F33 /* random.c in Sources */,
 				721360261D1858A7006A3F33 /* sec_negotiate.c in Sources */,
 				721360111D1858A7006A3F33 /* config.c in Sources */,
 				721360271D1858A7006A3F33 /* sspi.c in Sources */,
+				72FC01E92874604A0035ED02 /* des.c in Sources */,
 				721360131D1858A7006A3F33 /* data.c in Sources */,
-				72AD135F2316FFB700C87C40 /* tds_cond.c in Sources */,
 				7213602E1D1858A7006A3F33 /* util.c in Sources */,
-				72AD13532316FFB700C87C40 /* threadsafe.c in Sources */,
+				72FC01ED2874604A0035ED02 /* threadsafe.c in Sources */,
 				7213602C1D1858A7006A3F33 /* tls.c in Sources */,
+				72FC01E32874604A0035ED02 /* hmac_md5.c in Sources */,
 				7213601A1D1858A7006A3F33 /* locale.c in Sources */,
-				72AD134B2316FFB700C87C40 /* sleep.c in Sources */,
 				7213600F1D1858A7006A3F33 /* bulk.c in Sources */,
 				7213601F1D1858A7006A3F33 /* mem.c in Sources */,
-				72AD13612316FFB700C87C40 /* getpassarg.c in Sources */,
 				7213602D1D1858A7006A3F33 /* token.c in Sources */,
 				723C132824AE02F300CB668F /* FreeTDSHelpers.m in Sources */,
 				721360431D1858F1006A3F33 /* dbpivot.c in Sources */,
 				721360121D1858A7006A3F33 /* convert.c in Sources */,
-				72AD134D2316FFB700C87C40 /* tdsstring.c in Sources */,
 				721360171D1858A7006A3F33 /* gssapi.c in Sources */,
 				7213601C1D1858A7006A3F33 /* login.c in Sources */,
 				7213602F1D1858A7006A3F33 /* vstrbuild.c in Sources */,
 				721360421D1858F1006A3F33 /* dbopen.c in Sources */,
-				72AD13512316FFB700C87C40 /* md5.c in Sources */,
-				72AD13552316FFB700C87C40 /* dlist.c in Sources */,
-				72AD13652316FFB700C87C40 /* net.c in Sources */,
-				72AD13572316FFB700C87C40 /* win_mutex.c in Sources */,
-				72AD13632316FFB700C87C40 /* hmac_md5.c in Sources */,
+				72FC01F12874604A0035ED02 /* tds_cond.c in Sources */,
 				721360211D1858A7006A3F33 /* numeric.c in Sources */,
 				721360201D1858A7006A3F33 /* net.c in Sources */,
 				721360401D1858F1006A3F33 /* bcp.c in Sources */,
 				721360101D1858A7006A3F33 /* challenge.c in Sources */,
+				72FC01E52874604A0035ED02 /* getpassarg.c in Sources */,
+				72FC01F72874604A0035ED02 /* win_mutex.c in Sources */,
 				721360191D1858A7006A3F33 /* iconv.c in Sources */,
-				72AD13592316FFB700C87C40 /* bjoern-utf8.c in Sources */,
+				72FC01F52874604A0035ED02 /* md4.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -697,53 +697,53 @@
 				7203D1751E1EA27300DC960E /* read.c in Sources */,
 				7203D1761E1EA27300DC960E /* packet.c in Sources */,
 				7203D1771E1EA27300DC960E /* write.c in Sources */,
+				72FC01DE2874604A0035ED02 /* sleep.c in Sources */,
 				7203D1781E1EA27300DC960E /* tds_checks.c in Sources */,
 				7203D1791E1EA27300DC960E /* dbutil.c in Sources */,
+				72FC01EC2874604A0035ED02 /* md5.c in Sources */,
+				72FC01E22874604A0035ED02 /* tdsstring.c in Sources */,
+				72FC01E82874604A0035ED02 /* net.c in Sources */,
 				7203D17A1E1EA27300DC960E /* query.c in Sources */,
 				7203D17B1E1EA27300DC960E /* stream.c in Sources */,
 				7203D17E1E1EA27300DC960E /* dblib.c in Sources */,
 				7203D17F1E1EA27300DC960E /* rpc.c in Sources */,
+				72FC01F02874604A0035ED02 /* bjoern-utf8.c in Sources */,
 				7203D1801E1EA27300DC960E /* cryptohelper.m in Sources */,
 				7203D1811E1EA27300DC960E /* getmac.c in Sources */,
 				72AD136A2317006400C87C40 /* iconv.c in Sources */,
-				72AD135C2316FFB700C87C40 /* md4.c in Sources */,
-				72AD135E2316FFB700C87C40 /* des.c in Sources */,
 				7203D1821E1EA27300DC960E /* xact.c in Sources */,
 				7203D1841E1EA27300DC960E /* log.c in Sources */,
+				72FC01E02874604A0035ED02 /* dlist.c in Sources */,
 				7203D1851E1EA27300DC960E /* random.c in Sources */,
 				7203D1861E1EA27300DC960E /* sec_negotiate.c in Sources */,
 				7203D1871E1EA27300DC960E /* config.c in Sources */,
 				7203D1881E1EA27300DC960E /* sspi.c in Sources */,
+				72FC01EA2874604A0035ED02 /* des.c in Sources */,
 				7203D1891E1EA27300DC960E /* data.c in Sources */,
-				72AD13602316FFB700C87C40 /* tds_cond.c in Sources */,
 				7203D18B1E1EA27300DC960E /* util.c in Sources */,
-				72AD13542316FFB700C87C40 /* threadsafe.c in Sources */,
+				72FC01EE2874604A0035ED02 /* threadsafe.c in Sources */,
 				7203D18C1E1EA27300DC960E /* tls.c in Sources */,
+				72FC01E42874604A0035ED02 /* hmac_md5.c in Sources */,
 				7203D18D1E1EA27300DC960E /* locale.c in Sources */,
-				72AD134C2316FFB700C87C40 /* sleep.c in Sources */,
 				7203D18F1E1EA27300DC960E /* bulk.c in Sources */,
 				7203D1901E1EA27300DC960E /* mem.c in Sources */,
-				72AD13622316FFB700C87C40 /* getpassarg.c in Sources */,
 				7203D1911E1EA27300DC960E /* token.c in Sources */,
 				723C132924AE02F300CB668F /* FreeTDSHelpers.m in Sources */,
 				7203D1921E1EA27300DC960E /* dbpivot.c in Sources */,
 				7203D1931E1EA27300DC960E /* convert.c in Sources */,
-				72AD134E2316FFB700C87C40 /* tdsstring.c in Sources */,
 				7203D1951E1EA27300DC960E /* gssapi.c in Sources */,
 				7203D1961E1EA27300DC960E /* login.c in Sources */,
 				7203D1971E1EA27300DC960E /* vstrbuild.c in Sources */,
 				7203D1981E1EA27300DC960E /* dbopen.c in Sources */,
-				72AD13522316FFB700C87C40 /* md5.c in Sources */,
-				72AD13562316FFB700C87C40 /* dlist.c in Sources */,
-				72AD13662316FFB700C87C40 /* net.c in Sources */,
-				72AD13582316FFB700C87C40 /* win_mutex.c in Sources */,
-				72AD13642316FFB700C87C40 /* hmac_md5.c in Sources */,
+				72FC01F22874604A0035ED02 /* tds_cond.c in Sources */,
 				7203D1991E1EA27300DC960E /* numeric.c in Sources */,
 				7203D19A1E1EA27300DC960E /* net.c in Sources */,
 				7203D19B1E1EA27300DC960E /* bcp.c in Sources */,
 				7203D19C1E1EA27300DC960E /* challenge.c in Sources */,
+				72FC01E62874604A0035ED02 /* getpassarg.c in Sources */,
+				72FC01F82874604A0035ED02 /* win_mutex.c in Sources */,
 				7203D19D1E1EA27300DC960E /* iconv.c in Sources */,
-				72AD135A2316FFB700C87C40 /* bjoern-utf8.c in Sources */,
+				72FC01F62874604A0035ED02 /* md4.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

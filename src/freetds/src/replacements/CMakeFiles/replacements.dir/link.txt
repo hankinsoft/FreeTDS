@@ -1,0 +1,2 @@
+/Applications/Xcode-13-2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libreplacements.a CMakeFiles/replacements.dir/iconv.c.o CMakeFiles/replacements.dir/gettimeofday.c.o CMakeFiles/replacements.dir/poll.c.o CMakeFiles/replacements.dir/socketpair.c.o CMakeFiles/replacements.dir/getaddrinfo.c.o
+/Applications/Xcode-13-2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libreplacements.a
