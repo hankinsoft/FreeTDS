@@ -821,7 +821,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
@@ -864,7 +864,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -907,7 +907,6 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/libs/macOS",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hankinsoft.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = FreeTDSKit;
 				SDKROOT = macosx;
@@ -954,7 +953,6 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/libs/macOS",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hankinsoft.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = FreeTDSKit;
 				SDKROOT = macosx;
