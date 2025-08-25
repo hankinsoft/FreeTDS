@@ -614,6 +614,12 @@ tds_select(TDSSOCKET * tds, unsigned tds_sel, int timeout_seconds)
 	int rc, seconds;
 	unsigned int poll_seconds;
 
+    // Add this check at the beginning
+    if (!tds || TDS_IS_SOCKET_INVALID(tds_get_s(tds))) {
+        tdsdump_log(TDS_DBG_ERROR, "tds_select: invalid socket or tds structure\n");
+        return -1;
+    }
+
 	assert(tds != NULL);
 	assert(timeout_seconds >= 0);
 
