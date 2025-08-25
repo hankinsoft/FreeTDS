@@ -612,6 +612,28 @@ tds_select(TDSSOCKET * tds, unsigned tds_sel, int timeout_seconds)
 	int rc, seconds;
 	unsigned int poll_seconds;
 
+    // Enhanced error checking
+    if (!tds) {
+        tdsdump_log(TDS_DBG_ERROR, "tds_select: NULL tds pointer\n");
+        return -1;
+    }
+    
+    if (TDS_IS_SOCKET_INVALID(tds_get_s(tds))) {
+        tdsdump_log(TDS_DBG_ERROR, "tds_select: invalid socket\n");
+        return -1;
+    }
+    
+    if (IS_TDSDEAD(tds)) {
+        tdsdump_log(TDS_DBG_ERROR, "tds_select: TDS connection is dead\n");
+        return -1;
+    }
+    
+    // Replace assertions with error handling
+    if (timeout_seconds < 0) {
+        tdsdump_log(TDS_DBG_ERROR, "tds_select: negative timeout\n");
+        return -1;
+    }
+
 	assert(tds != NULL);
 	assert(timeout_seconds >= 0);
 
