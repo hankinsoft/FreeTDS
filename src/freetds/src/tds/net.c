@@ -728,11 +728,21 @@ tds_select(TDSSOCKET * tds, unsigned tds_sel, int timeout_seconds)
 				return -1;
 			}
 		}
-		/* 
-		 * We can reach here if no interrupt handler was installed and we either timed out or got EINTR. 
-		 * We cannot be polling, so we are about to drop out of the loop. 
+		/*
+		 * We can reach here if no interrupt handler was installed and we either timed out or got EINTR.
+		 * We cannot be polling, so we are about to drop out of the loop.
 		 */
-		assert(poll_seconds == timeout_seconds);
+		/* Replace assertion with error handling.
+		 * This assert assumed no interrupt handler was installed, so
+		 * poll_seconds would equal timeout_seconds. But dblib ALWAYS
+		 * installs _dblib_check_and_handle_interrupt, which forces
+		 * poll_seconds to 1 while timeout_seconds is the query timeout,
+		 * so the precondition is systematically false. When a read counts
+		 * a non-1s timeout down to zero the loop drops out here and the
+		 * assert aborts the whole process (SIGABRT). Fall through to the
+		 * normal timeout return instead. (Crash reported as net.c:735
+		 * SIGABRT / tds_select.cold.3 in the shipping build.)
+		 */
 	}
 	
 	return 0;
