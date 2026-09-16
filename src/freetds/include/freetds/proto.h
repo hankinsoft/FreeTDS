@@ -97,6 +97,16 @@ typedef TDS_UINT8 TDS_BIGDATETIME;
 #define TDS_LOGINACK_TOKEN        173	/* 0xAD                              */
 #define TDS_CONTROL_FEATUREEXTACK_TOKEN \
 				  174	/* 0xAE    TDS_CONTROL/TDS_FEATUREEXTACK */
+
+/*
+ * Federated authentication (MS-TDS 2.2.6.4 and 2.2.6.5). The PRELOGIN option
+ * tells the server the client can log in with a token; the LOGIN7 FeatureExt
+ * entry then carries the token itself. Only the SECURITYTOKEN library, where
+ * the caller has already obtained the access token, is implemented.
+ */
+#define TDS71_PRELOGIN_FEDAUTHREQUIRED	6
+#define TDS_FEATURE_FEDAUTH		0x02
+#define TDS_FEDAUTH_LIBRARY_SECURITYTOKEN	0x01
 #define TDS_ROW_TOKEN             209	/* 0xD1                              */
 #define TDS_NBC_ROW_TOKEN         210	/* 0xD2    as of TDS 7.3.B           */
 #define TDS_CMP_ROW_TOKEN         211	/* 0xD3                              */

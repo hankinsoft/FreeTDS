@@ -1244,6 +1244,7 @@ RETCODE dbwritetext(DBPROCESS * dbproc, char *objname, DBBINARY * textptr, DBTIN
 
 /* LOGINREC manipulation */
 RETCODE dbsetlname(LOGINREC * login, const char *value, int which);
+RETCODE dbsetlfedauthtoken(LOGINREC * login, const char *token);
 RETCODE dbsetlbool(LOGINREC * login, int value, int which);
 RETCODE dbsetlshort(LOGINREC * login, int value, int which);
 RETCODE dbsetllong(LOGINREC * login, long value, int which);

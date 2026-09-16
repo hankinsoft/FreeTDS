@@ -744,6 +744,12 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 	if (res && !tds_dstr_isempty(&login->library)) {
 		res = tds_dstr_dup(&connection->library, &login->library);
 	}
+	if (res && login->fedauth && !tds_dstr_isempty(&login->fedauth_token)) {
+		/* bearer token: wipe any previous copy first */
+		tds_dstr_zero(&connection->fedauth_token);
+		res = tds_dstr_dup(&connection->fedauth_token, &login->fedauth_token);
+		connection->fedauth = 1;
+	}
 	if (login->encryption_level) {
 		connection->encryption_level = login->encryption_level;
 	}

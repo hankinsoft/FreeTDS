@@ -829,6 +829,21 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	size_t user_name_len = strlen(user_name);
 	size_t auth_len = 0;
 
+	/*
+	 * Federated authentication: the caller obtained an access token from
+	 * Microsoft Entra ID and we hand it to the server in the LOGIN7
+	 * FeatureExt block (FEDAUTH, SECURITYTOKEN library). No user name,
+	 * password or SSPI/NTLM/GSS blob is sent. TDS 7.4 only.
+	 */
+	const int use_fedauth = IS_TDS74_PLUS(tds->conn) && login->fedauth
+		&& !tds_dstr_isempty(&login->fedauth_token);
+	const size_t fedauth_token_len = use_fedauth ? tds_dstr_len(&login->fedauth_token) : 0;
+	/* FeatureData: Options byte, token byte count, token as UTF-16LE */
+	const size_t fedauth_data_len = use_fedauth ? 1 + 4 + fedauth_token_len * 2 : 0;
+	/* FeatureExt: FeatureId, FeatureDataLen, FeatureData, 0xff terminator */
+	const size_t feature_ext_len = use_fedauth ? 1 + 4 + fedauth_data_len + 1 : 0;
+	size_t ext_pos = 0, feature_pos = 0, auth_pos = 0;
+
 	/* fields */
 	enum {
 		HOST_NAME,
@@ -854,7 +869,7 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 
 	/* check ntlm */
 #ifdef HAVE_SSPI
-	if (strchr(user_name, '\\') != NULL || user_name_len == 0) {
+	if (!use_fedauth && (strchr(user_name, '\\') != NULL || user_name_len == 0)) {
 		tdsdump_log(TDS_DBG_INFO2, "using SSPI authentication for '%s' account\n", user_name);
 		tds->conn->authentication = tds_sspi_get_auth(tds);
 		if (!tds->conn->authentication)
@@ -862,14 +877,14 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 		auth_len = tds->conn->authentication->packet_len;
 		packet_size += auth_len;
 #else
-	if (strchr(user_name, '\\') != NULL) {
+	if (!use_fedauth && strchr(user_name, '\\') != NULL) {
 		tdsdump_log(TDS_DBG_INFO2, "using NTLM authentication for '%s' account\n", user_name);
 		tds->conn->authentication = tds_ntlm_get_auth(tds);
 		if (!tds->conn->authentication)
 			return TDS_FAIL;
 		auth_len = tds->conn->authentication->packet_len;
 		packet_size += auth_len;
-	} else if (user_name_len == 0) {
+	} else if (!use_fedauth && user_name_len == 0) {
 # ifdef ENABLE_KRB5
 		/* try kerberos */
 		tdsdump_log(TDS_DBG_INFO2, "using GSS authentication\n");
@@ -900,7 +915,7 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	/* setup data fields */
 	memset(data_fields, 0, sizeof(data_fields));
 	SET_FIELD_DSTR(HOST_NAME, login->client_host_name, 128);
-	if (!tds->conn->authentication) {
+	if (!tds->conn->authentication && !use_fedauth) {
 		SET_FIELD_DSTR(USER_NAME, login->user_name, 128);
 		SET_FIELD_DSTR(PASSWORD, login->password, 128);
 	}
@@ -938,6 +953,19 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	pwd = (unsigned char *) data + data_fields[NEW_PASSWORD].pos - current_pos;
 	tds7_crypt_pass(pwd, data_fields[NEW_PASSWORD].len, pwd);
 	packet_size += data_stream.size;
+
+	/*
+	 * Layout after the fixed header: string table, then (fedauth only) the
+	 * 4-byte ibFeatureExtLong that ibExtension points at, followed by the
+	 * FeatureExt block, then any integrated-auth blob.
+	 */
+	if (use_fedauth) {
+		ext_pos = current_pos + data_stream.size;
+		feature_pos = ext_pos + 4;
+		packet_size += 4 + feature_ext_len;
+		option_flag3 |= TDS_EXTENSION;
+	}
+	auth_pos = current_pos + data_stream.size + (use_fedauth ? 4 + feature_ext_len : 0);
 
 #if !defined(TDS_DEBUG_LOGIN)
 	tdsdump_log(TDS_DBG_INFO2, "quietly sending TDS 7+ login packet\n");
@@ -1021,9 +1049,14 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	PUT_STRING_FIELD_PTR(APP_NAME);
 	/* server name */
 	PUT_STRING_FIELD_PTR(SERVER_NAME);
-	/* unknown */
-	tds_put_smallint(tds, 0);
-	tds_put_smallint(tds, 0);
+	/* ibExtension / cbExtension when fExtension is set, otherwise unused */
+	if (use_fedauth) {
+		TDS_PUT_SMALLINT(tds, ext_pos);
+		tds_put_smallint(tds, 4);
+	} else {
+		tds_put_smallint(tds, 0);
+		tds_put_smallint(tds, 0);
+	}
 	/* library name */
 	PUT_STRING_FIELD_PTR(LIBRARY_NAME);
 	/* language  - kostya@warmcat.excom.spb.su */
@@ -1036,7 +1069,7 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	tds_put_n(tds, hwaddr, 6);
 
 	/* authentication stuff */
-	TDS_PUT_SMALLINT(tds, current_pos + data_stream.size);
+	TDS_PUT_SMALLINT(tds, auth_pos);
 	TDS_PUT_SMALLINT(tds, auth_len);	/* this matches numbers at end of packet */
 
 	/* db file */
@@ -1051,6 +1084,28 @@ tds7_send_login(TDSSOCKET * tds, const TDSLOGIN * login)
 	}
 
 	tds_put_n(tds, data, data_stream.size);
+
+	if (use_fedauth) {
+		const unsigned char *token = (const unsigned char *) tds_dstr_cstr(&login->fedauth_token);
+		unsigned char fedauth_options = TDS_FEDAUTH_LIBRARY_SECURITYTOKEN << 1;
+		size_t n;
+
+		/* bit 0 echoes the server's PRELOGIN FEDAUTHREQUIRED answer, bits 1-7 name the library */
+		if (login->fedauth_echo)
+			fedauth_options |= 1;
+
+		tds_put_int(tds, (TDS_INT) feature_pos);	/* ibFeatureExtLong */
+		tds_put_byte(tds, TDS_FEATURE_FEDAUTH);
+		tds_put_int(tds, (TDS_INT) fedauth_data_len);
+		tds_put_byte(tds, fedauth_options);
+		tds_put_int(tds, (TDS_INT) (fedauth_token_len * 2));
+		/* tokens are base64url text, so widening each byte gives UTF-16LE */
+		for (n = 0; n < fedauth_token_len; ++n) {
+			tds_put_byte(tds, token[n]);
+			tds_put_byte(tds, 0);
+		}
+		tds_put_byte(tds, 0xff);
+	}
 
 	if (tds->conn->authentication)
 		tds_put_n(tds, tds->conn->authentication->packet, auth_len);
@@ -1083,26 +1138,14 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	const char *instance_name = tds_dstr_isempty(&login->instance_name) ? "MSSQLServer" : tds_dstr_cstr(&login->instance_name);
 	int instance_name_len = strlen(instance_name) + 1;
 	TDS_CHAR crypt_flag;
-	unsigned int start_pos = 21;
 	TDSRET ret;
+	const int use_fedauth = IS_TDS74_PLUS(tds->conn) && login->fedauth
+		&& !tds_dstr_isempty(&login->fedauth_token);
 
-#define START_POS 21
-#define UI16BE(n) ((n) >> 8), ((n) & 0xffu)
-#define SET_UI16BE(i,n) TDS_PUT_UA2BE(&buf[i],n)
-	TDS_UCHAR buf[] = {
-		/* netlib version */
-		0, UI16BE(START_POS), UI16BE(6),
-		/* encryption */
-		1, UI16BE(START_POS + 6), UI16BE(1),
-		/* instance */
-		2, UI16BE(START_POS + 6 + 1), UI16BE(0),
-		/* process id */
-		3, UI16BE(0), UI16BE(4),
-		/* MARS enables */
-		4, UI16BE(0), UI16BE(1),
-		/* end */
-		0xff
-	};
+	/* PRELOGIN option table in wire order: id, then payload length */
+	struct { TDS_UCHAR type; unsigned len; } options[6];
+	unsigned num_options = 0, header_len, data_off, n;
+	TDS_UCHAR buf[6 * 5 + 1];
 	static const TDS_UCHAR netlib8[] = { 8, 0, 1, 0x55, 0, 0 };
 	static const TDS_UCHAR netlib9[] = { 9, 0, 0,    0, 0, 0 };
 
@@ -1110,23 +1153,27 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 
 	TDS_TINYINT encryption_level = login->encryption_level;
 
-	SET_UI16BE(13, instance_name_len);
-	if (!IS_TDS72_PLUS(tds->conn)) {
-		SET_UI16BE(16, START_POS + 6 + 1 + instance_name_len);
-		buf[20] = 0xff;
-	} else {
-		start_pos += 5;
-#undef  START_POS
-#define START_POS 26
-		SET_UI16BE(1, START_POS);
-		SET_UI16BE(6, START_POS + 6);
-		SET_UI16BE(11, START_POS + 6 + 1);
-		SET_UI16BE(16, START_POS + 6 + 1 + instance_name_len);
-		SET_UI16BE(21, START_POS + 6 + 1 + instance_name_len + 4);
+	options[num_options].type = 0; options[num_options++].len = 6;	/* netlib version */
+	options[num_options].type = 1; options[num_options++].len = 1;	/* encryption */
+	options[num_options].type = 2; options[num_options++].len = instance_name_len;
+	options[num_options].type = 3; options[num_options++].len = 4;	/* process id */
+	if (IS_TDS72_PLUS(tds->conn)) {
+		options[num_options].type = 4; options[num_options++].len = 1;	/* MARS */
+	}
+	if (use_fedauth) {
+		options[num_options].type = TDS71_PRELOGIN_FEDAUTHREQUIRED; options[num_options++].len = 1;
 	}
 
-	assert(start_pos >= 21 && start_pos <= sizeof(buf));
-	assert(buf[start_pos-1] == 0xff);
+	/* each entry is id + big-endian offset + big-endian length, then a 0xff terminator */
+	header_len = num_options * 5 + 1;
+	data_off = header_len;
+	for (n = 0; n < num_options; ++n) {
+		buf[n * 5] = options[n].type;
+		TDS_PUT_UA2BE(&buf[n * 5 + 1], data_off);
+		TDS_PUT_UA2BE(&buf[n * 5 + 3], options[n].len);
+		data_off += options[n].len;
+	}
+	buf[header_len - 1] = 0xff;
 
 	if (encryption_level == TDS_ENCRYPTION_DEFAULT)
 		encryption_level = TDS_ENCRYPTION_REQUEST;
@@ -1141,7 +1188,7 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	/* do prelogin */
 	tds->out_flag = TDS71_PRELOGIN;
 
-	tds_put_n(tds, buf, start_pos);
+	tds_put_n(tds, buf, header_len);
 	/* netlib version */
 	tds_put_n(tds, IS_TDS72_PLUS(tds->conn) ? netlib9 : netlib8, 6);
 	/* encryption */
@@ -1173,6 +1220,9 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 #else
 		tds_put_byte(tds, 0);
 #endif
+	/* FEDAUTHREQUIRED: this client can authenticate with a token */
+	if (use_fedauth)
+		tds_put_byte(tds, 1);
 	ret = tds_flush_packet(tds);
 	if (TDS_FAILED(ret))
 		return ret;
@@ -1207,6 +1257,8 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 		if (type == 1 && len >= 1) {
 			crypt_flag = p[off];
 		}
+		if (use_fedauth && type == TDS71_PRELOGIN_FEDAUTHREQUIRED && len >= 1)
+			login->fedauth_echo = (p[off] != 0);
 #if ENABLE_ODBC_MARS
 		if (IS_TDS72_PLUS(tds->conn) && type == 4 && len >= 1)
 			login->mars = p[off];

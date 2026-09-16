@@ -986,6 +986,7 @@ tds_alloc_login(int use_environment)
 	tds_dstr_init(&login->password);
 	tds_dstr_init(&login->library);
 	tds_dstr_init(&login->new_password);
+	tds_dstr_init(&login->fedauth_token);
 
 	login->ip_addrs = NULL;
 
@@ -1035,6 +1036,8 @@ tds_free_login(TDSLOGIN * login)
 	tds_dstr_free(&login->password);
 	tds_dstr_zero(&login->new_password);
 	tds_dstr_free(&login->new_password);
+	tds_dstr_zero(&login->fedauth_token);
+	tds_dstr_free(&login->fedauth_token);
 	tds_dstr_free(&login->server_name);
 	tds_dstr_free(&login->language);
 	tds_dstr_free(&login->server_charset);

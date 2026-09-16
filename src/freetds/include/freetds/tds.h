@@ -529,6 +529,7 @@ typedef struct tds_login
 	DSTR user_name;	    	/**< account for login */
 	DSTR password;	    	/**< password of account login */
 	DSTR new_password;	    	/**< new password to set (TDS 7.2+) */
+	DSTR fedauth_token;	    	/**< Entra ID access token for federated authentication (TDS 7.4+) */
 
 	DSTR library;	/* Ct-Library, DB-Library,  TDS-Library or ODBC */
 	TDS_TINYINT encryption_level;
@@ -562,6 +563,8 @@ typedef struct tds_login
 	unsigned int readonly_intent:1;
 	unsigned int enable_tls_v1:1;
 	unsigned int server_is_valid:1;
+	unsigned int fedauth:1;		/**< log in with fedauth_token instead of user name and password */
+	unsigned int fedauth_echo:1;	/**< FEDAUTHREQUIRED value the server returned in PRELOGIN, echoed in LOGIN7 */
 } TDSLOGIN;
 
 typedef struct tds_headers

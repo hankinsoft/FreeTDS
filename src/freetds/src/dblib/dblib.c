@@ -880,6 +880,50 @@ dbsetlshort(LOGINREC * login, int value, int which)
 }
 #endif
 
+/**
+ * \ingroup dblib_core
+ * \brief Log in with a Microsoft Entra ID (Azure Active Directory) access token.
+ *
+ * The token travels in the LOGIN7 FEDAUTH feature extension (MS-TDS 2.2.6.4),
+ * so no user name or password is sent. The connection has to negotiate
+ * TDS 7.4, which is the default for Azure SQL. A dedicated setter rather than
+ * a dbsetlname() field: that path truncates long values and echoes them into
+ * the debug log, neither acceptable for a bearer token.
+ *
+ * \param login The \c LOGINREC to modify.
+ * \param token Access token for the \c https://database.windows.net/ resource.
+ * \retval SUCCEED the token was stored and federated authentication enabled.
+ * \retval FAIL \a login was NULL, or \a token was empty or not printable ASCII.
+ */
+RETCODE
+dbsetlfedauthtoken(LOGINREC * login, const char *token)
+{
+	const char *c;
+
+	tdsdump_log(TDS_DBG_FUNC, "dbsetlfedauthtoken(%p, %s)\n", login, token ? "<token>" : "NULL");
+
+	if (login == NULL) {
+		dbperror(NULL, SYBEASNL, 0);
+		return FAIL;
+	}
+	if (token == NULL || *token == '\0')
+		return FAIL;
+
+	/*
+	 * A JWT is base64url text with dots. Reject anything else: the login
+	 * packet widens each byte to UTF-16LE, which is only right for ASCII.
+	 */
+	for (c = token; *c; ++c) {
+		if ((unsigned char) *c < 0x20 || (unsigned char) *c >= 0x7f)
+			return FAIL;
+	}
+
+	if (!tds_dstr_copy(&login->tds_login->fedauth_token, token))
+		return FAIL;
+	login->tds_login->fedauth = 1;
+	return SUCCEED;
+}
+
 /** \internal
  * \ingroup dblib_internal
  * \brief Set a boolean value in a \c LOGINREC structure.  
