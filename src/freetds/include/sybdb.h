@@ -888,6 +888,7 @@ RETCODE dbrpcsend(DBPROCESS * dbproc);
 RETCODE dbsafestr(DBPROCESS * dbproc, const char *src, DBINT srclen, char *dest, DBINT destlen, int quotetype);
 RETCODE *dbsechandle(DBINT type, INTFUNCPTR handler);
 char *dbservcharset(DBPROCESS * dbprocess);
+const char *dbroutedserver(DBPROCESS * dbprocess);
 void dbsetavail(DBPROCESS * dbprocess);
 void dbsetbusy(DBPROCESS * dbprocess, DB_DBBUSY_FUNC busyfunc);
 RETCODE dbsetdefcharset(char *charset);

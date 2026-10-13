@@ -598,6 +598,9 @@ reroute:
 		ret = ok ? tds_lookup_host_set(tds_dstr_cstr(&login->server_host_name), &login->ip_addrs) : TDS_FAIL;
 		tdsdump_log(TDS_DBG_INFO1, "rerouting to host %s instance '%s' port %d\n",
 			    tds_dstr_cstr(&login->server_host_name), tds_dstr_cstr(&login->instance_name), login->port);
+		/* remembered on the connection so the application can tell a routed login from a direct one */
+		free(tds->conn->routed_server);
+		tds->conn->routed_server = strdup(routed);
 		login->routing_port = 0;
 		tds_dstr_free(&login->routing_address);
 		if (TDS_FAILED(ret)) {

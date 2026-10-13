@@ -1119,6 +1119,7 @@ tds_deinit_connection(TDSCONNECTION *conn)
 	tds_iconv_free(conn);
 	free(conn->product_name);
 	free(conn->server);
+	free(conn->routed_server);
 	tds_free_env(conn);
 #if ENABLE_ODBC_MARS
 	tds_mutex_free(&conn->list_mtx);

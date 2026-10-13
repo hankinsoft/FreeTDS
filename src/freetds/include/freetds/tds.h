@@ -1134,6 +1134,9 @@ struct tds_connection
 #endif
 	TDSAUTHENTICATION *authentication;
 	char *server;
+	/** "host\\instance" (or "host") the first server redirected the login to with a routing
+	 * ENVCHANGE (Azure SQL, Microsoft Fabric gateways); NULL when the login was not rerouted */
+	char *routed_server;
 };
 
 /**

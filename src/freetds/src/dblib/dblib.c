@@ -7059,6 +7059,24 @@ dbservcharset(DBPROCESS * dbproc)
 
 /**
  * \ingroup dblib_core
+ * \brief Server the login was redirected to, when the first server answered the login with a
+ * routing ENVCHANGE (Azure SQL and Microsoft Fabric gateways do this).
+ * 
+ * \param dbproc contains all information needed by db-lib to manage communications with the server.
+ * \return "host\\instance" (or "host") as sent by the gateway, NULL when the login was not rerouted.
+ */
+const char *
+dbroutedserver(DBPROCESS * dbproc)
+{
+	tdsdump_log(TDS_DBG_FUNC, "dbroutedserver(%p)\n", dbproc);
+	CHECK_PARAMETER(dbproc, SYBENULL, NULL);
+	if (!dbproc->tds_socket || !dbproc->tds_socket->conn)
+		return NULL;
+	return dbproc->tds_socket->conn->routed_server;
+}
+
+/**
+ * \ingroup dblib_core
  * \brief Transmit the command buffer to the server.  \em Non-blocking, does not wait for a response.
  * 
  * \param dbproc contains all information needed by db-lib to manage communications with the server.
