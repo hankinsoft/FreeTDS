@@ -577,9 +577,27 @@ reroute:
 	    && !tds_dstr_isempty(&login->routing_address) && login->routing_port) {
 		TDSRET ret;
 
+		/*
+		 * The routed address can be "host\\instance" (Microsoft Fabric gateways
+		 * route to a named instance). Resolve and TLS-verify the host part, send
+		 * the instance in PRELOGIN, and the full "host\\instance" as the LOGIN7
+		 * server name, as the Microsoft drivers do.
+		 */
+		const char *routed = tds_dstr_cstr(&login->routing_address);
+		const char *backslash = strchr(routed, '\\');
+		size_t host_len = backslash ? (size_t) (backslash - routed) : strlen(routed);
+		bool ok;
+
 		tds_close_socket(tds);
+		/* the TLS session belongs to the closed socket; the routed server gets a new handshake */
+		tds_ssl_deinit(tds->conn);
 		login->port = login->routing_port;
-		ret = tds_lookup_host_set(tds_dstr_cstr(&login->routing_address), &login->ip_addrs);
+		ok = !!tds_dstr_copyn(&login->server_host_name, routed, host_len)
+			&& !!tds_dstr_copy(&login->server_name, routed)
+			&& !!tds_dstr_copy(&login->instance_name, backslash ? backslash + 1 : "");
+		ret = ok ? tds_lookup_host_set(tds_dstr_cstr(&login->server_host_name), &login->ip_addrs) : TDS_FAIL;
+		tdsdump_log(TDS_DBG_INFO1, "rerouting to host %s instance '%s' port %d\n",
+			    tds_dstr_cstr(&login->server_host_name), tds_dstr_cstr(&login->instance_name), login->port);
 		login->routing_port = 0;
 		tds_dstr_free(&login->routing_address);
 		if (TDS_FAILED(ret)) {
@@ -1143,9 +1161,12 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 		&& !tds_dstr_isempty(&login->fedauth_token);
 
 	/* PRELOGIN option table in wire order: id, then payload length */
-	struct { TDS_UCHAR type; unsigned len; } options[6];
+	struct { TDS_UCHAR type; unsigned len; } options[7];
 	unsigned num_options = 0, header_len, data_off, n;
-	TDS_UCHAR buf[6 * 5 + 1];
+	TDS_UCHAR buf[7 * 5 + 1];
+	/* TRACEID: 16-byte connection id, 16-byte activity id, 4-byte activity sequence (MS-TDS 2.2.6.5).
+	 * Optional for SQL Server; the Microsoft Fabric gateway rejects logins that leave it out. */
+	TDS_UCHAR trace_id[36];
 	static const TDS_UCHAR netlib8[] = { 8, 0, 1, 0x55, 0, 0 };
 	static const TDS_UCHAR netlib9[] = { 9, 0, 0,    0, 0, 0 };
 
@@ -1159,6 +1180,9 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	options[num_options].type = 3; options[num_options++].len = 4;	/* process id */
 	if (IS_TDS72_PLUS(tds->conn)) {
 		options[num_options].type = 4; options[num_options++].len = 1;	/* MARS */
+	}
+	if (IS_TDS74_PLUS(tds->conn)) {
+		options[num_options].type = TDS71_PRELOGIN_TRACEID; options[num_options++].len = sizeof(trace_id);
 	}
 	if (use_fedauth) {
 		options[num_options].type = TDS71_PRELOGIN_FEDAUTHREQUIRED; options[num_options++].len = 1;
@@ -1220,6 +1244,12 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 #else
 		tds_put_byte(tds, 0);
 #endif
+	/* TRACEID: random connection and activity ids, sequence 1 */
+	if (IS_TDS74_PLUS(tds->conn)) {
+		tds_random_buffer(trace_id, 32);
+		trace_id[32] = 1; trace_id[33] = 0; trace_id[34] = 0; trace_id[35] = 0;
+		tds_put_n(tds, trace_id, sizeof(trace_id));
+	}
 	/* FEDAUTHREQUIRED: this client can authenticate with a token */
 	if (use_fedauth)
 		tds_put_byte(tds, 1);
@@ -1232,6 +1262,8 @@ tds71_do_login(TDSSOCKET * tds, TDSLOGIN* login)
 	if (ret <= 0 || tds->in_flag != TDS_REPLY)
 		return TDS_FAIL;
 	login->server_is_valid = 1;
+	/* the echo bit belongs to this PRELOGIN exchange, not to one before a reroute */
+	login->fedauth_echo = 0;
 	pkt_len = tds->in_len - tds->in_pos;
 
 	/* the only thing we care is flag */

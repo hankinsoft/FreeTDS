@@ -104,6 +104,7 @@ typedef TDS_UINT8 TDS_BIGDATETIME;
  * entry then carries the token itself. Only the SECURITYTOKEN library, where
  * the caller has already obtained the access token, is implemented.
  */
+#define TDS71_PRELOGIN_TRACEID		5
 #define TDS71_PRELOGIN_FEDAUTHREQUIRED	6
 #define TDS_FEATURE_FEDAUTH		0x02
 #define TDS_FEDAUTH_LIBRARY_SECURITYTOKEN	0x01
