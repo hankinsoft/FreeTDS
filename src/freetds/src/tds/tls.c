@@ -932,7 +932,11 @@ int
 tds_ssl_init(TDSSOCKET *tds)
 {
 #define DEFAULT_OPENSSL_CTX_OPTIONS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1)
-#define DEFAULT_OPENSSL_CIPHERS "HIGH:!SSLv2:!aNULL:-DH"
+/* OpenSSL 3 moved 3DES out of HIGH and defaults to security level 2, which refuses
+ * TLS 1.0/1.1, SHA-1 certificates and RSA keys under 2048 bits. Older SQL Servers
+ * need those, and login behaviour must not change with the library upgrade, so the
+ * floor stays where OpenSSL 1.0.2 had it. A custom cipher setting overrides this. */
+#define DEFAULT_OPENSSL_CIPHERS "HIGH:3DES:!SSLv2:!aNULL:-DH:@SECLEVEL=0"
 
 	SSL *con;
 	SSL_CTX *ctx;
@@ -1016,6 +1020,10 @@ tds_ssl_init(TDSSOCKET *tds)
 #ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
 	/* this disable a security improvement but allow connection... */
 	SSL_set_options(con, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
+#endif
+#ifdef SSL_OP_LEGACY_SERVER_CONNECT
+	/* OpenSSL 3 drops servers without RFC 5746 secure renegotiation; old SQL Servers lack it */
+	SSL_set_options(con, SSL_OP_LEGACY_SERVER_CONNECT);
 #endif
 
 	/* Perform the TLS handshake */

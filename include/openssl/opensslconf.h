@@ -1,22 +1,17 @@
+/*
+ * Copyright 2019-2021 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
+ */
 
-/* opensslconf.h */
-#if defined(__APPLE__) && defined (__x86_64__)
-# include <openssl/opensslconf-x86_64.h>
-#endif
+#ifndef OPENSSL_OPENSSLCONF_H
+#define OPENSSL_OPENSSLCONF_H
+#pragma once
 
-#if defined(__APPLE__) && defined (__i386__)
-# include <openssl/opensslconf-i386.h>
-#endif
+#include <openssl/configuration.h>
+#include <openssl/macros.h>
 
-#if defined(__APPLE__) && defined (__arm__) && defined (__ARM_ARCH_7A__)
-# include <openssl/opensslconf-armv7.h>
-#endif
-
-#if defined(__APPLE__) && defined (__arm__) && defined (__ARM_ARCH_7S__)
-# include <openssl/opensslconf-armv7s.h>
-#endif
-
-#if defined(__APPLE__) && (defined (__arm64__) || defined (__aarch64__))
-# include <openssl/opensslconf-arm64.h>
-#endif
-
+#endif /* OPENSSL_OPENSSLCONF_H */

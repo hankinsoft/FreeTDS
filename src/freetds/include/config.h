@@ -49,7 +49,7 @@
 #define HAVE_ARPA_INET_H 1
 
 /* Define to 1 if you have the `ASN1_STRING_get0_data' function. */
-/* #undef HAVE_ASN1_STRING_GET0_DATA */
+#define HAVE_ASN1_STRING_GET0_DATA 1
 
 /* Define to 1 if you have the `asprintf' function. */
 #define HAVE_ASPRINTF 1
@@ -58,7 +58,7 @@
 #define HAVE_BASENAME 1
 
 /* Define to 1 if you have the `BIO_get_data' function. */
-/* #undef HAVE_BIO_GET_DATA */
+#define HAVE_BIO_GET_DATA 1
 
 /* Define if you have the clock_gettime function. */
 /* #undef HAVE_CLOCK_GETTIME */
@@ -343,7 +343,7 @@
 /* #undef HAVE_ROKEN_H */
 
 /* Define to 1 if you have the `RSA_get0_key' function. */
-/* #undef HAVE_RSA_GET0_KEY */
+#define HAVE_RSA_GET0_KEY 1
 
 /* Define to 1 if you have the `setenv' function. */
 #define HAVE_SETENV 1
