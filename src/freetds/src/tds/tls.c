@@ -59,6 +59,10 @@
 #include <freetds/alloca.h>
 #include "replacements.h"
 
+#if defined(HAVE_OPENSSL) && defined(__APPLE__)
+#include <Security/Security.h>
+#endif
+
 #include <assert.h>
 
 /**
@@ -928,6 +932,141 @@ check_hostname(X509 *cert, const char *hostname)
 	return check_name_match(name, hostname);
 }
 
+/*
+ * Why the last certificate verification on this thread failed. A login runs
+ * on the thread that called dbopen(), so the application can read it after a
+ * failed login to tell an untrusted certificate from any other failure.
+ */
+static __thread char tds_ssl_verify_failure_text[256];
+
+static void
+tds_ssl_set_verify_failure(const char *reason)
+{
+	if (!tds_ssl_verify_failure_text[0] && reason)
+		strlcpy(tds_ssl_verify_failure_text, reason, sizeof(tds_ssl_verify_failure_text));
+}
+
+const char *
+tds_ssl_last_verify_failure(void)
+{
+	return tds_ssl_verify_failure_text[0] ? tds_ssl_verify_failure_text : NULL;
+}
+
+void
+tds_ssl_clear_verify_failure(void)
+{
+	tds_ssl_verify_failure_text[0] = '\0';
+}
+
+static const char *
+tds_ssl_hostname(TDSLOGIN *login)
+{
+	if (!tds_dstr_isempty(&login->ssl_hostname))
+		return tds_dstr_cstr(&login->ssl_hostname);
+	return tds_dstr_cstr(&login->server_host_name);
+}
+
+#ifdef __APPLE__
+static SecCertificateRef
+tds_x509_to_sec_certificate(X509 *cert)
+{
+	unsigned char *der = NULL;
+	int len = i2d_X509(cert, &der);
+	CFDataRef data;
+	SecCertificateRef sec_cert;
+
+	if (len <= 0)
+		return NULL;
+	data = CFDataCreate(NULL, der, len);
+	OPENSSL_free(der);
+	if (!data)
+		return NULL;
+	sec_cert = SecCertificateCreateWithData(NULL, data);
+	CFRelease(data);
+	return sec_cert;
+}
+
+/*
+ * Apple platforms keep their trusted roots in the keychain (macOS) or the
+ * system trust store (iOS), not in a file OpenSSL can load. With ca file
+ * "system" the chain the server sent is evaluated by SecTrust instead, so the
+ * system roots, roots installed by the user or a configuration profile, and
+ * the user's trust settings all count. Basic X.509 policy: the chain, validity
+ * and trust only. The host name is checked after the handshake, as for any
+ * other ca file.
+ */
+static int
+tds_apple_verify_certificate(X509_STORE_CTX *store_ctx, void *arg)
+{
+	X509 *leaf = X509_STORE_CTX_get0_cert(store_ctx);
+	STACK_OF(X509) *untrusted = X509_STORE_CTX_get0_untrusted(store_ctx);
+	CFMutableArrayRef certs = NULL;
+	SecCertificateRef sec_cert;
+	SecPolicyRef policy = NULL;
+	SecTrustRef trust = NULL;
+	CFErrorRef error = NULL;
+	int i, ok = 0;
+
+	(void) arg;
+
+	if (!leaf)
+		goto done;
+	certs = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+	if (!certs)
+		goto done;
+
+	/* leaf first, then any intermediates the server sent */
+	sec_cert = tds_x509_to_sec_certificate(leaf);
+	if (!sec_cert)
+		goto done;
+	CFArrayAppendValue(certs, sec_cert);
+	CFRelease(sec_cert);
+	for (i = 0; untrusted && i < sk_X509_num(untrusted); ++i) {
+		X509 *cert = sk_X509_value(untrusted, i);
+
+		if (X509_cmp(cert, leaf) == 0)
+			continue;
+		sec_cert = tds_x509_to_sec_certificate(cert);
+		if (sec_cert) {
+			CFArrayAppendValue(certs, sec_cert);
+			CFRelease(sec_cert);
+		}
+	}
+
+	policy = SecPolicyCreateBasicX509();
+	if (!policy || SecTrustCreateWithCertificates(certs, policy, &trust) != errSecSuccess)
+		goto done;
+
+	ok = SecTrustEvaluateWithError(trust, &error) ? 1 : 0;
+	if (!ok) {
+		char reason[sizeof(tds_ssl_verify_failure_text)] = "the certificate chain is not trusted";
+		CFStringRef description = error ? CFErrorCopyDescription(error) : NULL;
+
+		if (description) {
+			CFStringGetCString(description, reason, sizeof(reason), kCFStringEncodingUTF8);
+			CFRelease(description);
+		}
+		tdsdump_log(TDS_DBG_ERROR, "certificate verification failed: %s\n", reason);
+		tds_ssl_set_verify_failure(reason);
+	}
+
+done:
+	if (!ok) {
+		tds_ssl_set_verify_failure("the certificate chain could not be verified");
+		X509_STORE_CTX_set_error(store_ctx, X509_V_ERR_CERT_UNTRUSTED);
+	}
+	if (error)
+		CFRelease(error);
+	if (trust)
+		CFRelease(trust);
+	if (policy)
+		CFRelease(policy);
+	if (certs)
+		CFRelease(certs);
+	return ok;
+}
+#endif /* __APPLE__ */
+
 int
 tds_ssl_init(TDSSOCKET *tds)
 {
@@ -955,6 +1094,7 @@ tds_ssl_init(TDSSOCKET *tds)
 	tds_check_wildcard_test();
 
 	tds_ssl_deinit(tds->conn);
+	tds_ssl_clear_verify_failure();
 
 	tls_msg = "initializing tls";
 	ctx = tds_init_openssl();
@@ -967,6 +1107,12 @@ tds_ssl_init(TDSSOCKET *tds)
 
 	if (!tds_dstr_isempty(&tds->login->cafile)) {
 		tls_msg = "loading CA file";
+#ifdef __APPLE__
+		if (strcasecmp(tds_dstr_cstr(&tds->login->cafile), "system") == 0) {
+			SSL_CTX_set_cert_verify_callback(ctx, tds_apple_verify_certificate, NULL);
+			ret = 1;
+		} else
+#endif
 		if (strcasecmp(tds_dstr_cstr(&tds->login->cafile), "system") == 0)
 			ret = SSL_CTX_set_default_verify_paths(ctx);
 		else
@@ -1048,8 +1194,12 @@ tds_ssl_init(TDSSOCKET *tds)
 
 		cert =  SSL_get_peer_certificate(con);
 		tls_msg = "checking hostname";
-		if (!cert || !check_hostname(cert, tds_dstr_cstr(&tds->login->server_host_name)))
+		if (!cert || !check_hostname(cert, tds_ssl_hostname(tds->login))) {
+			tds_ssl_set_verify_failure("the server certificate does not match the host name");
+			if (cert)
+				X509_free(cert);
 			goto cleanup;
+		}
 		X509_free(cert);
 	}
 
@@ -1065,6 +1215,12 @@ tds_ssl_init(TDSSOCKET *tds)
 	return TDS_SUCCESS;
 
 cleanup:
+	if (con && !tds_dstr_isempty(&tds->login->cafile)) {
+		long verify_result = SSL_get_verify_result(con);
+
+		if (verify_result != X509_V_OK)
+			tds_ssl_set_verify_failure(X509_verify_cert_error_string(verify_result));
+	}
 	if (b2)
 		BIO_free(b2);
 	if (b)

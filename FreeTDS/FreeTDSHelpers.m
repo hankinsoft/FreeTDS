@@ -28,6 +28,7 @@
 #include <sybdb.h>
 #include <syberror.h>
 #include <dblib.h>
+#include <freetds/tls.h>
 
 @implementation FreeTDSHelpers
 
@@ -74,6 +75,50 @@
 {
     login->tds_login->enable_tls_v1 = enableTLSv1;
 }
+
++ (void) setLogin: (LOGINREC *) login
+verifyServerCertificate: (BOOL) verifyServerCertificate
+         hostName: (NSString*) hostName
+{
+    TDSLOGIN * tdsLogin = login->tds_login;
+
+    if(verifyServerCertificate)
+    {
+        // "system" is the platform trust store (SecTrust on Apple platforms, see tls.c)
+        tds_dstr_copy(&tdsLogin->cafile, "system");
+        tdsLogin->check_ssl_hostname = 1;
+
+        if(hostName.length)
+        {
+            tds_dstr_copy(&tdsLogin->ssl_hostname, hostName.UTF8String);
+        }
+        else
+        {
+            tds_dstr_free(&tdsLogin->ssl_hostname);
+        }
+    }
+    else
+    {
+        tds_dstr_free(&tdsLogin->cafile);
+        tds_dstr_free(&tdsLogin->ssl_hostname);
+    }
+} // End of setLogin:verifyServerCertificate:hostName:
+
++ (NSString*) lastCertificateVerificationFailure
+{
+    const char * failure = tds_ssl_last_verify_failure();
+    if(NULL == failure)
+    {
+        return nil;
+    }
+
+    return [NSString stringWithUTF8String: failure];
+} // End of lastCertificateVerificationFailure
+
++ (void) clearCertificateVerificationFailure
+{
+    tds_ssl_clear_verify_failure();
+} // End of clearCertificateVerificationFailure
 
 + (void) setLogin: (LOGINREC *) login
    updatePassword: (NSString*) newPassword

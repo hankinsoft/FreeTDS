@@ -603,6 +603,8 @@ reroute:
 		tds->conn->routed_server = strdup(routed);
 		login->routing_port = 0;
 		tds_dstr_free(&login->routing_address);
+		/* the routed server's certificate is checked against the routed host name */
+		tds_dstr_free(&login->ssl_hostname);
 		if (TDS_FAILED(ret)) {
 			tdserror(tds_get_ctx(tds), tds, TDSEFCON, 0);
 			return -TDSEFCON;

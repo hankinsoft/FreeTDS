@@ -781,6 +781,17 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 		res = tds_dstr_dup(&connection->openssl_ciphers, &login->openssl_ciphers);
 	}
 
+	/* certificate verification set on the login (not only in freetds.conf) */
+	if (res && !tds_dstr_isempty(&login->cafile)) {
+		res = tds_dstr_dup(&connection->cafile, &login->cafile);
+	}
+	if (res && !tds_dstr_isempty(&login->crlfile)) {
+		res = tds_dstr_dup(&connection->crlfile, &login->crlfile);
+	}
+	if (res && !tds_dstr_isempty(&login->ssl_hostname)) {
+		res = tds_dstr_dup(&connection->ssl_hostname, &login->ssl_hostname);
+	}
+
 	/* copy other info not present in configuration file */
 	connection->capabilities = login->capabilities;
 

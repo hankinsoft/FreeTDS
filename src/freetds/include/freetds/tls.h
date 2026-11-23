@@ -88,6 +88,10 @@ tds_ssl_write(TDSCONNECTION *conn, const unsigned char *buf, int buflen)
 {
 	return SSL_write((SSL *) conn->tls_session, buf, buflen);
 }
+
+/* why certificate verification failed in the last TLS handshake on this thread, or NULL */
+const char *tds_ssl_last_verify_failure(void);
+void tds_ssl_clear_verify_failure(void);
 #  endif
 #else
 static inline TDSRET

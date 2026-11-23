@@ -524,6 +524,7 @@ typedef struct tds_login
 	DSTR db_filename;		/**< database filename to attach (MSSQL) */
 	DSTR cafile;			/**< certificate authorities file */
 	DSTR crlfile;			/**< certificate revocation file */
+	DSTR ssl_hostname;		/**< name the server certificate must match; empty means server_host_name */
 	DSTR openssl_ciphers;
 	DSTR app_name;
 	DSTR user_name;	    	/**< account for login */
