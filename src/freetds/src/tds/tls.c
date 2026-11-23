@@ -835,7 +835,7 @@ check_name_match(ASN1_STRING *name, const char *hostname)
 
 	tdsdump_log(TDS_DBG_INFO1, "Got name %s\n", name_utf8);
 	ret = 0;
-	if (strlen(name_utf8) == name_len && check_wildcard(name_utf8, hostname))
+	if (strlen(name_utf8) == name_len && check_wildcard(hostname, name_utf8))
 		ret = 1;
 	OPENSSL_free(name_utf8);
 	return ret;
@@ -857,10 +857,11 @@ check_alt_names(X509 *cert, const char *hostname)
 	if (strchr(hostname, ':') != NULL) {
 		ip_size = 16;
 		ret = inet_pton(AF_INET6, hostname, &ip.v6);
-	} else {
+	} else if (strspn(hostname, "0123456789.") == strlen(hostname)) {
 		ip_size = 4;
 		ret = inet_pton(AF_INET, hostname, &ip.v4);
 	}
+	/* a DNS name (ip_size 0) is matched against the DNS alt names below */
 	if (ret == 0)
 		return -1;
 
