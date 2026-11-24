@@ -773,6 +773,10 @@ tds_config_login(TDSLOGIN * connection, TDSLOGIN * login)
 	if (!login->check_ssl_hostname)
 		connection->check_ssl_hostname = login->check_ssl_hostname;
 
+	/* TLS 1.0 on or off as the login asks; never copied before, so turning it
+	 * off in code did nothing (both default to on). */
+	connection->enable_tls_v1 = login->enable_tls_v1;
+
 	if (res && !tds_dstr_isempty(&login->db_filename)) {
 		res = tds_dstr_dup(&connection->db_filename, &login->db_filename);
 	}
